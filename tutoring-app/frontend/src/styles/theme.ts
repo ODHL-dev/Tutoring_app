@@ -1,4 +1,4 @@
-import { StyleSheet, Platform } from 'react-native';
+import { StyleSheet, Platform, type ViewStyle } from 'react-native';
 
 export const lightColors = {
   primary: '#6366F1', // Indigo
@@ -201,3 +201,15 @@ export const getGlobalStyles = (isDark: boolean) => {
 
 // Pour compatibilité rétroactive
 export const globalStyles = getGlobalStyles(false);
+
+export const webMaxWidth = (maxWidth: number): ViewStyle => {
+  if (Platform.OS !== 'web') {
+    return {};
+  }
+
+  return {
+    width: '100%',
+    maxWidth,
+    alignSelf: 'center',
+  };
+};

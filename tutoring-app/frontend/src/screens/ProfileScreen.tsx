@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Ale
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../hooks/useTheme';
-import { spacing, typography, borderRadius } from '../styles/theme';
+import { spacing, typography, borderRadius, webMaxWidth } from '../styles/theme';
 import { Icon } from '../components/Icon';
 
 export default function ProfileScreen() {
@@ -54,6 +54,7 @@ export default function ProfileScreen() {
       alignItems: 'center',
       borderBottomWidth: 1,
       borderBottomColor: colors.gray200,
+      ...webMaxWidth(900),
     },
     settingsButton: {
       position: 'absolute',
@@ -95,6 +96,7 @@ export default function ProfileScreen() {
     content: {
       padding: spacing.lg,
       gap: spacing.lg,
+      ...webMaxWidth(900),
     },
     section: {
       backgroundColor: colors.white,

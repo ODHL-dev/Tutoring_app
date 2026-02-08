@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Switch } from 'react-native';
-import { spacing, typography, borderRadius } from '../styles/theme';
+import { spacing, typography, borderRadius, webMaxWidth } from '../styles/theme';
 import { useTheme } from '../hooks/useTheme';
 import { useThemeStore } from '../contexts/themeStore';
 import { Icon } from '../components/Icon';
@@ -35,6 +35,7 @@ export default function SettingsScreen({ navigation }: any) {
     content: {
       padding: spacing.lg,
       gap: spacing.lg,
+      ...webMaxWidth(900),
     },
     section: {
       backgroundColor: colors.white,

@@ -1,12 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
 import { useForm } from '../../hooks/useForm';
 import { validateLoginForm } from '../../utils/validation';
 import { Button } from '../../components/Button';
 import { TextField } from '../../components/TextField';
-import { spacing, typography } from '../../styles/theme';
+import { spacing, typography, webMaxWidth } from '../../styles/theme';
 
 export default function LoginScreen({ navigation }: any) {
   const { login, isLoading, error } = useAuth();
@@ -36,9 +36,7 @@ export default function LoginScreen({ navigation }: any) {
       paddingBottom: spacing.xl,
     },
     content: {
-      width: '100%',
-      maxWidth: 520,
-      alignSelf: 'center',
+      ...webMaxWidth(520),
     },
     brand: {
       alignItems: 'center',
@@ -123,7 +121,16 @@ export default function LoginScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.page} showsVerticalScrollIndicator={false}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        <ScrollView 
+          contentContainerStyle={styles.page} 
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
         <View style={styles.content}>
           <View style={styles.brand}>
             <View style={styles.brandBadge}>
@@ -182,6 +189,7 @@ export default function LoginScreen({ navigation }: any) {
           </View>
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

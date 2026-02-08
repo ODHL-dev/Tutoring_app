@@ -42,15 +42,24 @@ export function validateLoginForm(email: string, password: string): ValidationRe
 }
 
 export function validateRegisterForm(
-  name: string,
+  firstName: string,
+  lastName: string,
   email: string,
   password: string,
-  confirmPassword: string
+  confirmPassword: string,
+  profession: 'student' | 'teacher',
+  classCycle?: 'primaire' | 'secondaire',
+  classLevel?: string,
+  series?: string,
+  teachingCycle?: 'primaire' | 'secondaire'
 ): ValidationResult {
   const errors: Record<string, string> = {};
 
-  const nameError = validateName(name);
-  if (nameError) errors.name = nameError;
+  const firstNameError = validateName(firstName);
+  if (firstNameError) errors.firstName = firstNameError;
+
+  const lastNameError = validateName(lastName);
+  if (lastNameError) errors.lastName = lastNameError;
 
   if (!email) {
     errors.email = 'L\'email est requis';
@@ -65,6 +74,25 @@ export function validateRegisterForm(
 
   if (password !== confirmPassword) {
     errors.confirmPassword = 'Les mots de passe ne correspondent pas';
+  }
+
+  if (profession === 'student' && !classCycle) {
+    errors.classCycle = 'Le cycle est requis';
+  }
+
+  if (profession === 'student' && !classLevel?.trim()) {
+    errors.classLevel = 'La classe est requise';
+  }
+
+  if (profession === 'student' && classCycle === 'secondaire') {
+    const needsSeries = ['2nde', '1ere', 'Terminale'].includes(classLevel ?? '');
+    if (needsSeries && !series?.trim()) {
+      errors.series = 'La serie est requise';
+    }
+  }
+
+  if (profession === 'teacher' && !teachingCycle) {
+    errors.teachingCycle = 'Le cycle est requis';
   }
 
   return {
