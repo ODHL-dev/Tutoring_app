@@ -92,8 +92,11 @@ export function HeaderUser({ name, avatar = '', onSettingsPress }: HeaderUserPro
         <View style={styles.textContent}>
           <Text style={styles.greeting}>Bienvenue</Text>
           <Text style={styles.userName}>{name}</Text>
-          </View>
         </View>
       </View>
-    );
-  }
+      <TouchableOpacity style={styles.settingsButton} onPress={onSettingsPress} activeOpacity={0.7}>
+        <Icon library="Material" name="settings" size={20} color={colors.gray600} />
+      </TouchableOpacity>
+    </View>
+  );
+}

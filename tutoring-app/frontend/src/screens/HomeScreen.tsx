@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, ScrollView, SafeAreaView, StyleSheet, FlatList, Text, TouchableOpacity } from 'react-native';
+import { View, ScrollView, SafeAreaView, StyleSheet, FlatList, Text, TouchableOpacity, Platform, useWindowDimensions } from 'react-native';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../hooks/useTheme';
 import { useGroupStore } from '../contexts/groupStore';
@@ -27,6 +27,9 @@ export default function HomeScreen({ navigation }: any) {
   const { user } = useAuth();
   const { colors } = useTheme();
   const { getGroupsByUser } = useGroupStore();
+  const { width } = useWindowDimensions();
+  const isWeb = Platform.OS === 'web';
+  const isWide = isWeb && width >= 1024;
 
   // État simulé - à remplacer par Zustand store
   const [streak] = useState(5);
@@ -60,19 +63,29 @@ export default function HomeScreen({ navigation }: any) {
       paddingTop: spacing.md,
       ...webMaxWidth(1100),
     },
+    grid: {
+      flexDirection: isWide ? 'row' : 'column',
+      gap: spacing.xl,
+    },
+    column: {
+      flex: 1,
+      minWidth: 0,
+    },
     section: {
       marginBottom: spacing.xl,
     },
     sectionTitleWrapper: {
-      marginHorizontal: -spacing.lg,
+      marginHorizontal: isWeb ? 0 : -spacing.lg,
     },
     quickActionsContainer: {
       flexDirection: 'row',
       flexWrap: 'wrap',
       justifyContent: 'space-between',
+      gap: spacing.md,
     },
     quickActionWrapper: {
-      width: '48%',
+      width: isWide ? '31%' : '48%',
+      minWidth: isWeb ? 170 : undefined,
       marginBottom: spacing.md,
     },
     coursesScroll: {
@@ -82,17 +95,26 @@ export default function HomeScreen({ navigation }: any) {
       gap: spacing.md,
       paddingRight: spacing.lg,
     },
+    courseGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.md,
+    },
     objectiveCard: {
       backgroundColor: colors.white,
       borderRadius: 14,
       padding: spacing.lg,
       borderWidth: 1,
       borderColor: colors.gray100,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.06,
-      shadowRadius: 6,
-      elevation: 2,
+      ...(isWeb
+        ? { boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.08)' }
+        : {
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.06,
+            shadowRadius: 6,
+            elevation: 2,
+          }),
     },
     footerButton: {
       marginTop: spacing.lg,
@@ -104,6 +126,15 @@ export default function HomeScreen({ navigation }: any) {
       marginBottom: spacing.md,
       borderWidth: 1,
       borderColor: colors.gray100,
+      ...(isWeb
+        ? { boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.06)' }
+        : {
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.06,
+            shadowRadius: 4,
+            elevation: 2,
+          }),
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
@@ -176,175 +207,237 @@ export default function HomeScreen({ navigation }: any) {
     navigation.navigate('GroupInvite', { mode: 'join' });
   };
 
+  const coursesContent = isWide ? (
+    <View style={styles.courseGrid}>
+      {courses.map((item) => (
+        <CourseCard
+          key={item.id}
+          iconName={item.iconName}
+          iconLibrary={item.iconLibrary}
+          code={item.code}
+          name={item.name}
+          level={item.level}
+          onPress={() => handleCoursePress(item.id)}
+        />
+      ))}
+    </View>
+  ) : (
+    <FlatList
+      data={courses}
+      keyExtractor={(item) => item.id}
+      renderItem={({ item }) => (
+        <CourseCard
+          iconName={item.iconName}
+          iconLibrary={item.iconLibrary}
+          code={item.code}
+          name={item.name}
+          level={item.level}
+          onPress={() => handleCoursePress(item.id)}
+        />
+      )}
+      horizontal
+      scrollEnabled
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={styles.coursesContent}
+    />
+  );
+
+  const headerSection = (
+    <View style={styles.section}>
+      <HeaderUser name={user?.name || 'Étudiant'} onSettingsPress={() => {}} />
+    </View>
+  );
+
+  const streakSection = (
+    <View style={styles.section}>
+      <StreakCounter streak={streak} xp={xp} />
+    </View>
+  );
+
+  const quickActionsSection = (
+    <View style={styles.section}>
+      <View style={styles.sectionTitleWrapper}>
+        <SectionTitle title="Raccourcis" iconName="zap" iconLibrary="Feather" actionText="Personnaliser" />
+      </View>
+      <View style={styles.quickActionsContainer}>
+        <View style={styles.quickActionWrapper}>
+          <QuickActionButton
+            iconName="message-circle"
+            iconLibrary="Feather"
+            label="Chat"
+            onPress={handleChatPress}
+            color={colors.primary}
+          />
+        </View>
+        <View style={styles.quickActionWrapper}>
+          <QuickActionButton
+            iconName="edit-3"
+            iconLibrary="Feather"
+            label="Exercices"
+            onPress={handleExercisesPress}
+            color={colors.secondary}
+          />
+        </View>
+        <View style={styles.quickActionWrapper}>
+          <QuickActionButton
+            iconName="book-open"
+            iconLibrary="Feather"
+            label="Leçons"
+            onPress={handleLessonsPress}
+            color={colors.accent}
+          />
+        </View>
+        <View style={styles.quickActionWrapper}>
+          <QuickActionButton
+            iconName="bar-chart-2"
+            iconLibrary="Feather"
+            label="Progression"
+            onPress={handleProgressPress}
+            color={colors.info}
+          />
+        </View>
+        <View style={styles.quickActionWrapper}>
+          <QuickActionButton
+            iconName="users"
+            iconLibrary="Feather"
+            label="Rejoindre"
+            onPress={handleJoinGroupPress}
+            color={colors.primary}
+          />
+        </View>
+      </View>
+    </View>
+  );
+
+  const heroSection = (
+    <View style={styles.section}>
+      <HeroCard
+        subject="Mathématiques"
+        title="Fractions - Niveau 2"
+        progress={currentProgress}
+        onPress={handleContinue}
+      />
+    </View>
+  );
+
+  const objectiveSection = (
+    <View style={styles.section}>
+      <View style={styles.objectiveCard}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+          <View
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 10,
+              backgroundColor: colors.accentLight,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Icon library="MaterialCommunity" name="target" size={18} color={colors.accent} />
+          </View>
+          <View style={{ flex: 1, gap: spacing.xs }}>
+            <Text style={{ fontSize: 14, fontWeight: '600', color: colors.gray900 }}>Objectif du jour</Text>
+            <Text style={{ fontSize: 12, color: colors.gray600 }}>
+              Complétez 3 exercices pour obtenir 50 XP
+            </Text>
+          </View>
+        </View>
+        <View style={{ marginTop: spacing.md, flexDirection: 'row', gap: spacing.sm }}>
+          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.secondary }} />
+          <View
+            style={{
+              flex: 1,
+              height: 8,
+              backgroundColor: colors.gray200,
+              borderRadius: 4,
+              overflow: 'hidden',
+            }}
+          >
+            <View style={{ width: '60%', height: '100%', backgroundColor: colors.secondary }} />
+          </View>
+          <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondary }}>60%</Text>
+        </View>
+      </View>
+    </View>
+  );
+
+  const coursesSection = (
+    <View style={styles.section}>
+      <View style={styles.sectionTitleWrapper}>
+        <SectionTitle title="Vos cours" iconName="book" iconLibrary="Feather" actionText="Voir plus" />
+      </View>
+      <View style={styles.coursesScroll}>{coursesContent}</View>
+    </View>
+  );
+
+  const groupsSection = (
+    <View style={styles.section}>
+      <View style={styles.sectionTitleWrapper}>
+        <SectionTitle title="Mes groupes" iconName="users" iconLibrary="Feather" actionText="Voir tout" />
+      </View>
+      {groups.length > 0 ? (
+        groups.map((group) => (
+          <TouchableOpacity
+            key={group.id}
+            style={styles.groupCard}
+            onPress={() => navigation.navigate('GroupDetail', { groupId: group.id })}
+            activeOpacity={0.7}
+          >
+            <View style={styles.groupInfo}>
+              <Text style={styles.groupName}>{group.name}</Text>
+              <Text style={styles.groupMeta}>{group.memberCount} membres</Text>
+              <View style={styles.groupCode}>
+                <Text style={styles.groupCodeText}>Code: {group.code}</Text>
+              </View>
+            </View>
+            <Icon library="Feather" name="chevron-right" size={20} color={colors.gray400} />
+          </TouchableOpacity>
+        ))
+      ) : (
+        <Text style={styles.emptyText}>Vous n'avez pas encore rejoint de groupe.</Text>
+      )}
+    </View>
+  );
+
+  const statsSection = (
+    <View style={styles.section}>
+      <StatsWidget title="Votre semaine" stats={weeklyStats} />
+    </View>
+  );
+
+  const contentBody = isWide ? (
+    <View style={styles.grid}>
+      <View style={styles.column}>
+        {headerSection}
+        {streakSection}
+        {quickActionsSection}
+        {groupsSection}
+      </View>
+      <View style={styles.column}>
+        {heroSection}
+        {objectiveSection}
+        {coursesSection}
+        {statsSection}
+      </View>
+    </View>
+  ) : (
+    <>
+      {headerSection}
+      {streakSection}
+      {quickActionsSection}
+      {heroSection}
+      {objectiveSection}
+      {coursesSection}
+      {groupsSection}
+      {statsSection}
+    </>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        <View style={styles.content}>
-          <View style={styles.section}>
-            <HeaderUser name={user?.name || 'Étudiant'} onSettingsPress={() => {}} />
-          </View>
-
-          <View style={styles.section}>
-            <StreakCounter streak={streak} xp={xp} />
-          </View>
-
-          <View style={styles.section}>
-            <View style={styles.sectionTitleWrapper}>
-              <SectionTitle title="Raccourcis" iconName="zap" iconLibrary="Feather" actionText="Personnaliser" />
-            </View>
-            <View style={styles.quickActionsContainer}>
-              <View style={styles.quickActionWrapper}>
-                <QuickActionButton
-                  iconName="message-circle"
-                  iconLibrary="Feather"
-                  label="Chat"
-                  onPress={handleChatPress}
-                  color={colors.primary}
-                />
-              </View>
-              <View style={styles.quickActionWrapper}>
-                <QuickActionButton
-                  iconName="edit-3"
-                  iconLibrary="Feather"
-                  label="Exercices"
-                  onPress={handleExercisesPress}
-                  color={colors.secondary}
-                />
-              </View>
-              <View style={styles.quickActionWrapper}>
-                <QuickActionButton
-                  iconName="book-open"
-                  iconLibrary="Feather"
-                  label="Leçons"
-                  onPress={handleLessonsPress}
-                  color={colors.accent}
-                />
-              </View>
-              <View style={styles.quickActionWrapper}>
-                <QuickActionButton
-                  iconName="bar-chart-2"
-                  iconLibrary="Feather"
-                  label="Progression"
-                  onPress={handleProgressPress}
-                  color={colors.info}
-                />
-              </View>
-              <View style={styles.quickActionWrapper}>
-                <QuickActionButton
-                  iconName="users"
-                  iconLibrary="Feather"
-                  label="Rejoindre"
-                  onPress={handleJoinGroupPress}
-                  color={colors.primary}
-                />
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.section}>
-            <HeroCard
-              subject="Mathématiques"
-              title="Fractions - Niveau 2"
-              progress={currentProgress}
-              onPress={handleContinue}
-            />
-          </View>
-
-          <View style={styles.section}>
-            <View style={styles.objectiveCard}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                <View style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 10,
-                  backgroundColor: colors.accentLight,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                  <Icon library="MaterialCommunity" name="target" size={18} color={colors.accent} />
-                </View>
-                <View style={{ flex: 1, gap: spacing.xs }}>
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: colors.gray900 }}>Objectif du jour</Text>
-                  <Text style={{ fontSize: 12, color: colors.gray600 }}>
-                    Complétez 3 exercices pour obtenir 50 XP
-                  </Text>
-                </View>
-              </View>
-              <View style={{ marginTop: spacing.md, flexDirection: 'row', gap: spacing.sm }}>
-                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.secondary }} />
-                <View
-                  style={{
-                    flex: 1,
-                    height: 8,
-                    backgroundColor: colors.gray200,
-                    borderRadius: 4,
-                    overflow: 'hidden',
-                  }}
-                >
-                  <View style={{ width: '60%', height: '100%', backgroundColor: colors.secondary }} />
-                </View>
-                <Text style={{ fontSize: 12, fontWeight: '600', color: colors.secondary }}>60%</Text>
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.section}>
-            <View style={styles.sectionTitleWrapper}>
-              <SectionTitle title="Vos cours" iconName="book" iconLibrary="Feather" actionText="Voir plus" />
-            </View>
-            <View style={styles.coursesScroll}>
-              <FlatList
-                data={courses}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item }) => (
-                  <CourseCard
-                    iconName={item.iconName}
-                    iconLibrary={item.iconLibrary}
-                    code={item.code}
-                    name={item.name}
-                    level={item.level}
-                    onPress={() => handleCoursePress(item.id)}
-                  />
-                )}
-                horizontal
-                scrollEnabled
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.coursesContent}
-              />
-            </View>
-          </View>
-
-          <View style={styles.section}>
-            <View style={styles.sectionTitleWrapper}>
-              <SectionTitle title="Mes groupes" iconName="users" iconLibrary="Feather" actionText="Voir tout" />
-            </View>
-            {groups.length > 0 ? (
-              groups.map((group) => (
-                <TouchableOpacity
-                  key={group.id}
-                  style={styles.groupCard}
-                  onPress={() => navigation.navigate('GroupDetail', { groupId: group.id })}
-                  activeOpacity={0.7}
-                >
-                  <View style={styles.groupInfo}>
-                    <Text style={styles.groupName}>{group.name}</Text>
-                    <Text style={styles.groupMeta}>{group.memberCount} membres</Text>
-                    <View style={styles.groupCode}>
-                      <Text style={styles.groupCodeText}>Code: {group.code}</Text>
-                    </View>
-                  </View>
-                  <Icon library="Feather" name="chevron-right" size={20} color={colors.gray400} />
-                </TouchableOpacity>
-              ))
-            ) : (
-              <Text style={styles.emptyText}>Vous n'avez pas encore rejoint de groupe.</Text>
-            )}
-          </View>
-
-          <View style={styles.section}>
-            <StatsWidget title="Votre semaine" stats={weeklyStats} />
-          </View>
-        </View>
+        <View style={styles.content}>{contentBody}</View>
       </ScrollView>
     </SafeAreaView>
   );

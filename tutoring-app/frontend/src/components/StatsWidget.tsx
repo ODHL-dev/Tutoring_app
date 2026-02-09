@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
-import { spacing, typography, borderRadius } from '../styles/theme';
+import { spacing, typography, borderRadius, shadows } from '../styles/theme';
 import { Icon, IconLibrary } from './Icon';
 
 interface StatItem {
@@ -24,11 +24,9 @@ export function StatsWidget({ title, stats }: StatsWidgetProps) {
       backgroundColor: colors.white,
       borderRadius: borderRadius.lg,
       padding: spacing.lg,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.08,
-      shadowRadius: 4,
-      elevation: 2,
+      borderWidth: 1,
+      borderColor: colors.gray100,
+      ...shadows.sm,
       marginBottom: spacing.lg,
     },
     title: {

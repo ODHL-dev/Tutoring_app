@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
-import { spacing, typography, borderRadius } from '../styles/theme';
+import { spacing, typography, borderRadius, shadows } from '../styles/theme';
 import { Icon, IconLibrary, MaterialIcons } from './Icon';
 
 interface CourseCardProps {
@@ -39,11 +39,9 @@ export function CourseCard({ iconName, iconLibrary = 'MaterialCommunity', code, 
       borderRadius: borderRadius.lg,
       padding: spacing.md,
       marginRight: spacing.md,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.08,
-      shadowRadius: 4,
-      elevation: 2,
+      borderWidth: 1,
+      borderColor: colors.gray100,
+      ...shadows.sm,
     },
     iconWrapper: {
       width: 52,

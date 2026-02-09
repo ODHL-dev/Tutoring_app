@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Modal,
+  useWindowDimensions,
 } from 'react-native';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
@@ -24,6 +25,9 @@ export default function RegisterScreen({ navigation }: any) {
   const { colors } = useTheme();
   const [profession, setProfession] = useState<'student' | 'teacher'>('student');
   const [step, setStep] = useState<1 | 2 | 3>(1);
+  const { width } = useWindowDimensions();
+  const isWeb = Platform.OS === 'web';
+  const isWide = isWeb && width >= 1024;
   const [selectConfig, setSelectConfig] = useState<{
     title: string;
     options: string[];
@@ -167,14 +171,94 @@ export default function RegisterScreen({ navigation }: any) {
     container: {
       flex: 1,
       backgroundColor: colors.gray50,
+      position: 'relative',
+    },
+    backgroundTop: {
+      position: 'absolute',
+      top: -120,
+      right: -120,
+      width: 260,
+      height: 260,
+      borderRadius: 999,
+      backgroundColor: colors.secondaryLight,
+      opacity: 0.5,
+    },
+    backgroundBottom: {
+      position: 'absolute',
+      bottom: -140,
+      left: -120,
+      width: 300,
+      height: 300,
+      borderRadius: 999,
+      backgroundColor: colors.primaryLight,
+      opacity: 0.5,
     },
     page: {
       paddingHorizontal: spacing.lg,
       paddingTop: spacing.xl,
       paddingBottom: spacing.xl,
+      alignItems: isWide ? 'center' : 'stretch',
     },
     content: {
-      ...webMaxWidth(560),
+      width: '100%',
+      ...webMaxWidth(1120),
+    },
+    shell: {
+      flexDirection: isWide ? 'row' : 'column',
+      alignItems: isWide ? 'stretch' : 'center',
+      gap: spacing.xl,
+    },
+    panel: {
+      flex: 1,
+      justifyContent: 'center',
+      paddingRight: spacing.xl,
+      display: isWide ? 'flex' : 'none',
+    },
+    panelBadge: {
+      alignSelf: 'flex-start',
+      backgroundColor: colors.secondaryLight,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xs,
+      borderRadius: 999,
+      marginBottom: spacing.md,
+    },
+    panelBadgeText: {
+      ...typography.label,
+      color: colors.secondary,
+      fontWeight: '700',
+      letterSpacing: 0.3,
+    },
+    panelTitle: {
+      ...typography.h2,
+      color: colors.gray900,
+      marginBottom: spacing.sm,
+    },
+    panelSubtitle: {
+      ...typography.body1,
+      color: colors.gray600,
+      marginBottom: spacing.lg,
+    },
+    panelList: {
+      gap: spacing.sm,
+    },
+    panelItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    panelDot: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      backgroundColor: colors.secondary,
+    },
+    panelText: {
+      ...typography.body2,
+      color: colors.gray700,
+    },
+    authColumn: {
+      flex: 1,
+      maxWidth: isWide ? 560 : undefined,
     },
     brand: {
       alignItems: 'center',
@@ -376,6 +460,12 @@ export default function RegisterScreen({ navigation }: any) {
 
   return (
     <SafeAreaView style={styles.container}>
+      {isWeb && (
+        <>
+          <View style={styles.backgroundTop} />
+          <View style={styles.backgroundBottom} />
+        </>
+      )}
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
@@ -387,28 +477,54 @@ export default function RegisterScreen({ navigation }: any) {
           keyboardShouldPersistTaps="handled"
         >
         <View style={styles.content}>
-          <View style={styles.brand}>
-            <View style={styles.brandBadge}>
-              <Text style={styles.brandBadgeText}>DÉMARRER</Text>
-            </View>
-            <Text style={styles.brandTitle}>Créer un compte</Text>
-            <Text style={styles.brandSubtitle}>Rejoignez la plateforme et suivez votre progression.</Text>
-          </View>
-
-          <View style={styles.card}>
-            <View style={styles.cardHeader}>
-              <View style={styles.stepBadge}>
-                <Text style={styles.stepBadgeText}>Etape {step}/3</Text>
+          <View style={styles.shell}>
+            <View style={styles.panel}>
+              <View style={styles.panelBadge}>
+                <Text style={styles.panelBadgeText}>COMMENCER</Text>
               </View>
-              <Text style={styles.cardTitle}>Inscription</Text>
-              <Text style={styles.cardSubtitle}>{stepSubtitle}</Text>
+              <Text style={styles.panelTitle}>Creez votre espace d'apprentissage.</Text>
+              <Text style={styles.panelSubtitle}>
+                Choisissez votre profil et commencez a progresser avec un suivi adapte.
+              </Text>
+              <View style={styles.panelList}>
+                <View style={styles.panelItem}>
+                  <View style={styles.panelDot} />
+                  <Text style={styles.panelText}>Profil eleve ou enseignant en un clic.</Text>
+                </View>
+                <View style={styles.panelItem}>
+                  <View style={styles.panelDot} />
+                  <Text style={styles.panelText}>Parcours personnalise et outils IA.</Text>
+                </View>
+                <View style={styles.panelItem}>
+                  <View style={styles.panelDot} />
+                  <Text style={styles.panelText}>Groupes et suivi de progression.</Text>
+                </View>
+              </View>
             </View>
 
-            {error && (
-              <View style={styles.errorBox}>
-                <Text style={styles.errorText}>{error}</Text>
+            <View style={styles.authColumn}>
+              <View style={styles.brand}>
+                <View style={styles.brandBadge}>
+                  <Text style={styles.brandBadgeText}>DEMARRER</Text>
+                </View>
+                <Text style={styles.brandTitle}>Creer un compte</Text>
+                <Text style={styles.brandSubtitle}>Rejoignez la plateforme et suivez votre progression.</Text>
               </View>
-            )}
+
+              <View style={styles.card}>
+                <View style={styles.cardHeader}>
+                  <View style={styles.stepBadge}>
+                    <Text style={styles.stepBadgeText}>Etape {step}/3</Text>
+                  </View>
+                  <Text style={styles.cardTitle}>Inscription</Text>
+                  <Text style={styles.cardSubtitle}>{stepSubtitle}</Text>
+                </View>
+
+                {error && (
+                  <View style={styles.errorBox}>
+                    <Text style={styles.errorText}>{error}</Text>
+                  </View>
+                )}
 
             {step === 1 && (
               <>
@@ -646,16 +762,18 @@ export default function RegisterScreen({ navigation }: any) {
             </View>
           </View>
 
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Déjà inscrit ?</Text>
-            <Text
-              style={styles.linkText}
-              onPress={() => navigation.navigate('Login')}
-            >
-              Se connecter
-            </Text>
+                <View style={styles.footer}>
+                  <Text style={styles.footerText}>Deja inscrit ?</Text>
+                  <Text
+                    style={styles.linkText}
+                    onPress={() => navigation.navigate('Login')}
+                  >
+                    Se connecter
+                  </Text>
+                </View>
+              </View>
+            </View>
           </View>
-        </View>
       </ScrollView>
       </KeyboardAvoidingView>
       <Modal

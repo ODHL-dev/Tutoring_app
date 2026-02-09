@@ -4,6 +4,7 @@
     "slug": "tutoring-app",
     "version": "0.1.0",
     "orientation": "portrait",
+    "jsEngine": "jsc",
     "userInterfaceStyle": "light",
     "assetBundlePatterns": ["**/*"],
     "ios": {
@@ -19,7 +20,6 @@
       ]
     },
     "web": {
-      "bundler": "webpack",
       "output": "single"
     },
     "extra": {

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
-import { spacing, typography } from '../styles/theme';
+import { spacing, typography, borderRadius, shadows } from '../styles/theme';
 import { Icon } from './Icon';
 
 interface StreakCounterProps {
@@ -18,7 +18,10 @@ export function StreakCounter({ streak, xp }: StreakCounterProps) {
       paddingHorizontal: spacing.lg,
       paddingVertical: spacing.md,
       backgroundColor: colors.gray50,
-      borderRadius: 12,
+      borderRadius: borderRadius.lg,
+      borderWidth: 1,
+      borderColor: colors.gray100,
+      ...shadows.sm,
       marginBottom: spacing.lg,
     },
     streakContainer: {

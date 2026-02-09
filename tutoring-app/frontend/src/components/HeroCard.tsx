@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
-import { spacing, typography, borderRadius } from '../styles/theme';
+import { spacing, typography, borderRadius, shadows } from '../styles/theme';
 import { Icon } from './Icon';
 
 interface HeroCardProps {
@@ -22,11 +22,9 @@ export function HeroCard({ subject, title, progress, onPress }: HeroCardProps) {
       padding: spacing.lg,
       marginBottom: spacing.xl,
       overflow: 'hidden',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.12,
-      shadowRadius: 8,
-      elevation: 5,
+      borderWidth: 1,
+      borderColor: colors.gray100,
+      ...shadows.lg,
     },
     gradient: {
       backgroundColor: colors.primary,

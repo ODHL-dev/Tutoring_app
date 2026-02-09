@@ -1,7 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
-import { spacing, typography, borderRadius } from '../styles/theme';
+import { spacing, typography, borderRadius, shadows } from '../styles/theme';
 import { Icon, IconLibrary } from './Icon';
 
 interface QuickActionButtonProps {
@@ -30,11 +30,9 @@ export function QuickActionButton({
       alignItems: 'center',
       justifyContent: 'center',
       gap: spacing.sm,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.08,
-      shadowRadius: 4,
-      elevation: 2,
+      borderWidth: 1,
+      borderColor: colors.gray100,
+      ...shadows.sm,
       borderLeftWidth: 4,
       borderLeftColor: buttonColor,
     },
