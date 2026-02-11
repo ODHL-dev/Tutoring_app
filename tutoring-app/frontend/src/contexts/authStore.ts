@@ -34,6 +34,7 @@ interface AuthState {
     series?: string,
     teachingCycle?: User['teachingCycle']
   ) => Promise<void>;
+  updateUserName: (name: string) => void;
   logout: () => void;
   clearError: () => void;
 }
@@ -162,6 +163,15 @@ export const useAuthStore = create<AuthState>()(
         });
         throw error;
       }
+    },
+
+    updateUserName: (name: string) => {
+      set((state) => {
+        if (!state.user) {
+          return;
+        }
+        state.user.name = name.trim();
+      });
     },
 
     logout: () => {

@@ -180,27 +180,27 @@ export default function HomeScreen({ navigation }: any) {
 
   const handleContinue = () => {
     console.log('Continuer la leçon');
-    // navigation.navigate('ChatScreen');
+    navigation.navigate('Lessons');
   };
 
   const handleChatPress = () => {
     console.log('Ouvrir le chat');
-    // navigation.navigate('ChatScreen');
+    navigation.navigate('Chat');
   };
 
   const handleExercisesPress = () => {
     console.log('Ouvrir les exercices');
-    // navigation.navigate('ExercisesScreen');
+    navigation.navigate('Exercises');
   };
 
   const handleLessonsPress = () => {
     console.log('Ouvrir les leçons');
-    // navigation.navigate('LessonsScreen');
+    navigation.navigate('Lessons');
   };
 
   const handleProgressPress = () => {
     console.log('Ouvrir la progression');
-    // navigation.navigate('ProgressScreen');
+    navigation.navigate('Progress');
   };
 
   const handleJoinGroupPress = () => {

@@ -1,17 +1,36 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Switch } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Switch, Alert, Platform } from 'react-native';
 import { spacing, typography, borderRadius, webMaxWidth } from '../styles/theme';
 import { useTheme } from '../hooks/useTheme';
 import { useThemeStore } from '../contexts/themeStore';
+import { useAuth } from '../hooks/useAuth';
+import { validatePassword } from '../utils/validation';
 import { Icon } from '../components/Icon';
+import { TextField } from '../components/TextField';
+import { Button } from '../components/Button';
 
 export default function SettingsScreen({ navigation }: any) {
   const { isDarkMode, colors, useSystemTheme } = useTheme();
   const { setDarkMode, setUseSystemTheme } = useThemeStore();
+  const { user, updateUserName } = useAuth();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [systemTheme, setSystemTheme] = useState(useSystemTheme);
   const [manualDarkMode, setManualDarkMode] = useState(!useSystemTheme && isDarkMode);
+  const [userNameDraft, setUserNameDraft] = useState(user?.name ?? '');
+  const [nameError, setNameError] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordErrors, setPasswordErrors] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+
+  useEffect(() => {
+    setUserNameDraft(user?.name ?? '');
+  }, [user?.name]);
 
   const handleSystemThemeToggle = async (value: boolean) => {
     setSystemTheme(value);
@@ -21,6 +40,61 @@ export default function SettingsScreen({ navigation }: any) {
   const handleManualDarkModeToggle = async (value: boolean) => {
     setManualDarkMode(value);
     await setDarkMode(value);
+  };
+
+  const showMessage = (message: string) => {
+    if (Platform.OS === 'web') {
+      window.alert(message);
+      return;
+    }
+    Alert.alert('Compte', message);
+  };
+
+  const handleSaveName = () => {
+    const trimmed = userNameDraft.trim();
+    if (!trimmed) {
+      setNameError('Le nom d\'utilisateur est requis');
+      return;
+    }
+    setNameError('');
+    updateUserName(trimmed);
+    showMessage('Nom d\'utilisateur mis a jour.');
+  };
+
+  const handleSavePassword = () => {
+    const nextErrors = {
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    };
+
+    if (!currentPassword) {
+      nextErrors.currentPassword = 'Le mot de passe actuel est requis';
+    }
+
+    const newPasswordError = validatePassword(newPassword);
+    if (newPasswordError) {
+      nextErrors.newPassword = newPasswordError;
+    }
+
+    if (!confirmPassword || newPassword !== confirmPassword) {
+      nextErrors.confirmPassword = 'Les mots de passe ne correspondent pas';
+    }
+
+    if (currentPassword && newPassword && currentPassword === newPassword) {
+      nextErrors.newPassword = 'Le nouveau mot de passe doit etre different';
+    }
+
+    const hasErrors = Object.values(nextErrors).some((value) => value.length > 0);
+    setPasswordErrors(nextErrors);
+    if (hasErrors) {
+      return;
+    }
+
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    showMessage('Mot de passe mis a jour.');
   };
 
   const styles = StyleSheet.create({
@@ -47,10 +121,26 @@ export default function SettingsScreen({ navigation }: any) {
       paddingTop: spacing.lg,
       paddingBottom: spacing.sm,
     },
+    sectionBody: {
+      paddingHorizontal: spacing.lg,
+      paddingBottom: spacing.lg,
+    },
     sectionTitle: {
       ...typography.h4,
       color: colors.gray900,
       fontWeight: '600',
+    },
+    sectionSubtitle: {
+      ...typography.body1,
+      color: colors.gray900,
+      fontWeight: '600',
+      marginTop: spacing.md,
+      marginBottom: spacing.sm,
+    },
+    divider: {
+      height: 1,
+      backgroundColor: colors.gray200,
+      marginVertical: spacing.md,
     },
     settingRow: {
       flexDirection: 'row',
@@ -112,6 +202,9 @@ export default function SettingsScreen({ navigation }: any) {
       marginTop: spacing.lg,
       marginBottom: spacing.md,
     },
+    formActions: {
+      marginTop: spacing.sm,
+    },
   });
 
   return (
@@ -159,6 +252,7 @@ export default function SettingsScreen({ navigation }: any) {
             <TouchableOpacity 
               style={styles.settingRow}
               activeOpacity={0.7}
+              onPress={() => navigation.navigate('Profile')}
             >
               <View style={[styles.iconWrapper, styles.primaryIconWrapper]}>
                 <Icon library="Feather" name="globe" size={20} color={colors.primary} />
@@ -211,160 +305,72 @@ export default function SettingsScreen({ navigation }: any) {
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Compte</Text>
             </View>
-            
-            <TouchableOpacity 
-              style={styles.settingRow}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.iconWrapper, styles.secondaryIconWrapper]}>
-                <Icon library="Feather" name="user" size={20} color={colors.secondary} />
+            <View style={styles.sectionBody}>
+              <Text style={styles.sectionSubtitle}>Nom d'utilisateur</Text>
+              <TextField
+                label="Nom d'utilisateur"
+                placeholder="Votre nom affiche"
+                value={userNameDraft}
+                onChangeText={(value) => {
+                  setUserNameDraft(value);
+                  if (nameError) {
+                    setNameError('');
+                  }
+                }}
+                error={nameError}
+              />
+              <View style={styles.formActions}>
+                <Button title="Enregistrer" onPress={handleSaveName} fullWidth />
               </View>
-              <View style={styles.settingContent}>
-                <Text style={styles.settingLabel}>Profil</Text>
-                <Text style={styles.settingDescription}>Modifier vos informations</Text>
-              </View>
-              <View style={styles.settingAction}>
-                <Icon library="Feather" name="chevron-right" size={20} color={colors.gray400} />
-              </View>
-            </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={styles.settingRow}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.iconWrapper, styles.secondaryIconWrapper]}>
-                <Icon library="Feather" name="lock" size={20} color={colors.secondary} />
-              </View>
-              <View style={styles.settingContent}>
-                <Text style={styles.settingLabel}>Sécurité</Text>
-                <Text style={styles.settingDescription}>Mot de passe et authentification</Text>
-              </View>
-              <View style={styles.settingAction}>
-                <Icon library="Feather" name="chevron-right" size={20} color={colors.gray400} />
-              </View>
-            </TouchableOpacity>
+              <View style={styles.divider} />
 
-            <TouchableOpacity 
-              style={[styles.settingRow, styles.settingRowLast]}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.iconWrapper, styles.secondaryIconWrapper]}>
-                <Icon library="Feather" name="shield" size={20} color={colors.secondary} />
+              <Text style={styles.sectionSubtitle}>Mot de passe</Text>
+              <TextField
+                label="Mot de passe actuel"
+                placeholder="Votre mot de passe"
+                value={currentPassword}
+                onChangeText={(value) => {
+                  setCurrentPassword(value);
+                  if (passwordErrors.currentPassword) {
+                    setPasswordErrors((prev) => ({ ...prev, currentPassword: '' }));
+                  }
+                }}
+                error={passwordErrors.currentPassword}
+                secureTextEntry
+              />
+              <TextField
+                label="Nouveau mot de passe"
+                placeholder="Au moins 6 caracteres"
+                value={newPassword}
+                onChangeText={(value) => {
+                  setNewPassword(value);
+                  if (passwordErrors.newPassword) {
+                    setPasswordErrors((prev) => ({ ...prev, newPassword: '' }));
+                  }
+                }}
+                error={passwordErrors.newPassword}
+                secureTextEntry
+              />
+              <TextField
+                label="Confirmer le mot de passe"
+                placeholder="Re-saisir le mot de passe"
+                value={confirmPassword}
+                onChangeText={(value) => {
+                  setConfirmPassword(value);
+                  if (passwordErrors.confirmPassword) {
+                    setPasswordErrors((prev) => ({ ...prev, confirmPassword: '' }));
+                  }
+                }}
+                error={passwordErrors.confirmPassword}
+                secureTextEntry
+              />
+              <View style={styles.formActions}>
+                <Button title="Mettre a jour" onPress={handleSavePassword} fullWidth />
               </View>
-              <View style={styles.settingContent}>
-                <Text style={styles.settingLabel}>Confidentialité</Text>
-                <Text style={styles.settingDescription}>Gérer vos données</Text>
-              </View>
-              <View style={styles.settingAction}>
-                <Icon library="Feather" name="chevron-right" size={20} color={colors.gray400} />
-              </View>
-            </TouchableOpacity>
-          </View>
-
-          {/* Support */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Support</Text>
             </View>
-            
-            <TouchableOpacity 
-              style={styles.settingRow}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.iconWrapper, styles.accentIconWrapper]}>
-                <Icon library="Feather" name="help-circle" size={20} color={colors.accent} />
-              </View>
-              <View style={styles.settingContent}>
-                <Text style={styles.settingLabel}>Centre d'aide</Text>
-                <Text style={styles.settingDescription}>FAQ et tutoriels</Text>
-              </View>
-              <View style={styles.settingAction}>
-                <Icon library="Feather" name="chevron-right" size={20} color={colors.gray400} />
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.settingRow}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.iconWrapper, styles.accentIconWrapper]}>
-                <Icon library="Feather" name="message-square" size={20} color={colors.accent} />
-              </View>
-              <View style={styles.settingContent}>
-                <Text style={styles.settingLabel}>Nous contacter</Text>
-                <Text style={styles.settingDescription}>Envoyer un message</Text>
-              </View>
-              <View style={styles.settingAction}>
-                <Icon library="Feather" name="chevron-right" size={20} color={colors.gray400} />
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.settingRow, styles.settingRowLast]}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.iconWrapper, styles.accentIconWrapper]}>
-                <Icon library="Feather" name="star" size={20} color={colors.accent} />
-              </View>
-              <View style={styles.settingContent}>
-                <Text style={styles.settingLabel}>Noter l'application</Text>
-                <Text style={styles.settingDescription}>Partagez votre avis</Text>
-              </View>
-              <View style={styles.settingAction}>
-                <Icon library="Feather" name="chevron-right" size={20} color={colors.gray400} />
-              </View>
-            </TouchableOpacity>
           </View>
 
-          {/* À propos */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>À propos</Text>
-            </View>
-            
-            <TouchableOpacity 
-              style={styles.settingRow}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.iconWrapper, styles.grayIconWrapper]}>
-                <Icon library="Feather" name="info" size={20} color={colors.gray700} />
-              </View>
-              <View style={styles.settingContent}>
-                <Text style={styles.settingLabel}>Version</Text>
-                <Text style={styles.settingDescription}>1.0.0 (Build 1)</Text>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.settingRow}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.iconWrapper, styles.grayIconWrapper]}>
-                <Icon library="Feather" name="file-text" size={20} color={colors.gray700} />
-              </View>
-              <View style={styles.settingContent}>
-                <Text style={styles.settingLabel}>Conditions d'utilisation</Text>
-              </View>
-              <View style={styles.settingAction}>
-                <Icon library="Feather" name="chevron-right" size={20} color={colors.gray400} />
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[styles.settingRow, styles.settingRowLast]}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.iconWrapper, styles.grayIconWrapper]}>
-                <Icon library="Feather" name="file-text" size={20} color={colors.gray700} />
-              </View>
-              <View style={styles.settingContent}>
-                <Text style={styles.settingLabel}>Politique de confidentialité</Text>
-              </View>
-              <View style={styles.settingAction}>
-                <Icon library="Feather" name="chevron-right" size={20} color={colors.gray400} />
-              </View>
-            </TouchableOpacity>
-          </View>
         </View>
       </ScrollView>
     </SafeAreaView>

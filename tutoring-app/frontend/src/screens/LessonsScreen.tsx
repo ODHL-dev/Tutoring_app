@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, FlatList } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
 import { spacing, typography, borderRadius, webMaxWidth } from '../styles/theme';
 import { Icon, IconLibrary } from '../components/Icon';
@@ -79,6 +79,14 @@ export default function LessonsScreen({ navigation }: any) {
     ],
   };
 
+  const allExercises = useMemo(() => Object.values(exercisesByLesson).flat(), [exercisesByLesson]);
+  const incompleteExercises = useMemo(() => allExercises.filter((ex) => !ex.completed), [allExercises]);
+  const avgProgress = useMemo(() => {
+    if (!lessons.length) return 0;
+    const total = lessons.reduce((sum, lesson) => sum + lesson.progress, 0);
+    return Math.round((total / lessons.length) * 100);
+  }, [lessons]);
+
   const styles = StyleSheet.create({
     container: {
       flex: 1,
@@ -127,6 +135,31 @@ export default function LessonsScreen({ navigation }: any) {
       paddingHorizontal: spacing.lg,
       ...webMaxWidth(1100),
     },
+    summaryRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.md,
+      marginBottom: spacing.lg,
+    },
+    summaryCard: {
+      flexGrow: 1,
+      minWidth: '46%',
+      backgroundColor: colors.white,
+      borderRadius: borderRadius.lg,
+      padding: spacing.md,
+      borderWidth: 1,
+      borderColor: colors.gray100,
+    },
+    summaryLabel: {
+      ...typography.body2,
+      color: colors.gray600,
+    },
+    summaryValue: {
+      ...typography.h3,
+      color: colors.gray900,
+      fontWeight: '700',
+      marginTop: spacing.xs,
+    },
     lessonCard: {
       backgroundColor: colors.white,
       borderRadius: borderRadius.lg,
@@ -140,6 +173,20 @@ export default function LessonsScreen({ navigation }: any) {
       justifyContent: 'space-between',
       alignItems: 'center',
       marginBottom: spacing.md,
+    },
+    lessonHeaderLeft: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.md,
+      flex: 1,
+    },
+    lessonIcon: {
+      width: 48,
+      height: 48,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.primaryLight,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     lessonInfo: {
       flex: 1,
@@ -176,6 +223,26 @@ export default function LessonsScreen({ navigation }: any) {
       backgroundColor: colors.primary,
       justifyContent: 'center',
       alignItems: 'center',
+    },
+    lessonActions: {
+      marginTop: spacing.sm,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    openButton: {
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
+      borderRadius: borderRadius.md,
+      backgroundColor: colors.primary,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
+    },
+    openButtonText: {
+      ...typography.label,
+      color: colors.white,
+      fontWeight: '700',
     },
     exerciseContainer: {
       backgroundColor: colors.gray50,
@@ -264,20 +331,27 @@ export default function LessonsScreen({ navigation }: any) {
   const LessonCardComponent = ({ lesson }: { lesson: Lesson }) => {
     const isExpanded = expandedLessonId === lesson.id;
     const exercises = exercisesByLesson[lesson.id] || [];
+    const completionPct = Math.round(lesson.progress * 100);
 
     return (
-      <TouchableOpacity 
-        style={styles.lessonCard}
-        onPress={() => navigation.navigate('LessonDetail', { lessonId: lesson.id })}
-        activeOpacity={0.7}
-      >
+      <View style={styles.lessonCard}>
         <View style={styles.lessonHeader}>
-          <View style={styles.lessonInfo}>
-            <Text style={styles.lessonTitle}>{lesson.title}</Text>
-            <View style={styles.lessonMeta}>
-              <Text style={styles.metaText}>{lesson.subject}</Text>
-              <Text style={styles.metaText}>•</Text>
-              <Text style={styles.metaText}>{lesson.duration}</Text>
+          <View style={styles.lessonHeaderLeft}>
+            <View style={styles.lessonIcon}>
+              <Icon
+                library={lesson.iconLibrary}
+                name={lesson.icon}
+                size={22}
+                color={colors.primary}
+              />
+            </View>
+            <View style={styles.lessonInfo}>
+              <Text style={styles.lessonTitle}>{lesson.title}</Text>
+              <View style={styles.lessonMeta}>
+                <Text style={styles.metaText}>{lesson.subject}</Text>
+                <Text style={styles.metaText}>•</Text>
+                <Text style={styles.metaText}>{lesson.duration}</Text>
+              </View>
             </View>
           </View>
           <TouchableOpacity
@@ -295,6 +369,18 @@ export default function LessonsScreen({ navigation }: any) {
 
         <View style={styles.progressBar}>
           <View style={[styles.progressFill, { width: `${lesson.progress * 100}%` }]} />
+        </View>
+
+        <View style={styles.lessonActions}>
+          <Text style={styles.metaText}>{completionPct}% termine</Text>
+          <TouchableOpacity
+            style={styles.openButton}
+            onPress={() => navigation.navigate('LessonDetail', { lessonId: lesson.id })}
+            activeOpacity={0.8}
+          >
+            <Icon library="Feather" name="play" size={16} color={colors.white} />
+            <Text style={styles.openButtonText}>Voir la lecon</Text>
+          </TouchableOpacity>
         </View>
 
         {isExpanded && (
@@ -334,12 +420,22 @@ export default function LessonsScreen({ navigation }: any) {
             )}
           </View>
         )}
-      </TouchableOpacity>
+      </View>
     );
   };
 
   const renderCourses = () => (
     <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <View style={styles.summaryRow}>
+        <View style={styles.summaryCard}>
+          <Text style={styles.summaryLabel}>Progression moyenne</Text>
+          <Text style={styles.summaryValue}>{avgProgress}%</Text>
+        </View>
+        <View style={styles.summaryCard}>
+          <Text style={styles.summaryLabel}>Exercices en attente</Text>
+          <Text style={styles.summaryValue}>{incompleteExercises.length}</Text>
+        </View>
+      </View>
       {lessons.map((lesson) => (
         <LessonCardComponent key={lesson.id} lesson={lesson} />
       ))}
@@ -347,9 +443,6 @@ export default function LessonsScreen({ navigation }: any) {
   );
 
   const renderExercises = () => {
-    const allExercises = Object.values(exercisesByLesson).flat();
-    const incompleteExercises = allExercises.filter((ex) => !ex.completed);
-
     return (
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {incompleteExercises.length > 0 ? (

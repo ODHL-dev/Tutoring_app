@@ -5,6 +5,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../hooks/useTheme';
+import { Icon } from '../components/Icon';
 
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
@@ -12,6 +13,8 @@ import HomeScreen from '../screens/HomeScreen';
 import ChatScreen from '../screens/ChatScreen';
 import LessonsScreen from '../screens/LessonsScreen';
 import LessonDetailScreen from '../screens/LessonDetailScreen';
+import ExercisesScreen from '../screens/ExercisesScreen';
+import ProgressScreen from '../screens/ProgressScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import TeacherDashboardScreen from '../screens/TeacherDashboardScreen';
@@ -43,6 +46,8 @@ const linkingConfig = {
         },
       },
       LessonDetail: 'lessons/:lessonId',
+      Exercises: 'exercises',
+      Progress: 'progress',
       ClassDetail: 'classes/:classId',
       GroupDetail: 'groups/:groupId',
       GroupInvite: 'join/:code',
@@ -92,6 +97,9 @@ function MainTabs() {
         options={{
           title: 'Accueil',
           tabBarLabel: 'Accueil',
+          tabBarIcon: ({ color, size }) => (
+            <Icon library="Feather" name="home" size={size ?? 20} color={color} />
+          ),
         }}
       />
       <Tab.Screen
@@ -100,6 +108,9 @@ function MainTabs() {
         options={{
           title: 'Tuteur',
           tabBarLabel: 'Tuteur',
+          tabBarIcon: ({ color, size }) => (
+            <Icon library="Feather" name="message-circle" size={size ?? 20} color={color} />
+          ),
         }}
       />
       <Tab.Screen
@@ -108,6 +119,9 @@ function MainTabs() {
         options={{
           title: 'Leçons',
           tabBarLabel: 'Leçons',
+          tabBarIcon: ({ color, size }) => (
+            <Icon library="Feather" name="book-open" size={size ?? 20} color={color} />
+          ),
         }}
       />
       <Tab.Screen
@@ -116,6 +130,9 @@ function MainTabs() {
         options={{
           title: 'Profil',
           tabBarLabel: 'Profil',
+          tabBarIcon: ({ color, size }) => (
+            <Icon library="Feather" name="user" size={size ?? 20} color={color} />
+          ),
         }}
       />
     </Tab.Navigator>
@@ -150,6 +167,9 @@ function TeacherTabs() {
         options={{
           title: 'Accueil',
           tabBarLabel: 'Accueil',
+          tabBarIcon: ({ color, size }) => (
+            <Icon library="Feather" name="home" size={size ?? 20} color={color} />
+          ),
         }}
       />
       <Tab.Screen
@@ -158,6 +178,9 @@ function TeacherTabs() {
         options={{
           title: 'Tuteur',
           tabBarLabel: 'Tuteur',
+          tabBarIcon: ({ color, size }) => (
+            <Icon library="Feather" name="message-circle" size={size ?? 20} color={color} />
+          ),
         }}
       />
       <Tab.Screen
@@ -166,6 +189,9 @@ function TeacherTabs() {
         options={{
           title: 'Groupes',
           tabBarLabel: 'Groupes',
+          tabBarIcon: ({ color, size }) => (
+            <Icon library="Feather" name="users" size={size ?? 20} color={color} />
+          ),
         }}
       />
       <Tab.Screen
@@ -174,6 +200,9 @@ function TeacherTabs() {
         options={{
           title: 'Profil',
           tabBarLabel: 'Profil',
+          tabBarIcon: ({ color, size }) => (
+            <Icon library="Feather" name="user" size={size ?? 20} color={color} />
+          ),
         }}
       />
     </Tab.Navigator>
@@ -193,6 +222,22 @@ function AppStack() {
       {user?.role === 'teacher' ? (
         <>
           <Stack.Screen name="MainTabs" component={TeacherTabs} />
+          <Stack.Screen
+            name="Exercises"
+            component={ExercisesScreen}
+            options={{
+              headerShown: true,
+              title: 'Exercices',
+            }}
+          />
+          <Stack.Screen
+            name="Progress"
+            component={ProgressScreen}
+            options={{
+              headerShown: true,
+              title: 'Progression',
+            }}
+          />
           <Stack.Screen 
             name="ClassDetail" 
             component={ClassDetailScreen}
@@ -218,6 +263,22 @@ function AppStack() {
       ) : (
         <>
           <Stack.Screen name="MainTabs" component={MainTabs} />
+          <Stack.Screen
+            name="Exercises"
+            component={ExercisesScreen}
+            options={{
+              headerShown: true,
+              title: 'Exercices',
+            }}
+          />
+          <Stack.Screen
+            name="Progress"
+            component={ProgressScreen}
+            options={{
+              headerShown: true,
+              title: 'Progression',
+            }}
+          />
           <Stack.Screen 
             name="LessonDetail" 
             component={LessonDetailScreen}

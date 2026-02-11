@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Alert, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../hooks/useTheme';
@@ -12,6 +12,14 @@ export default function ProfileScreen() {
   const { colors } = useTheme();
 
   const handleLogout = () => {
+    if (Platform.OS === 'web') {
+      const shouldLogout = window.confirm('Êtes-vous sûr de vouloir vous déconnecter ?');
+      if (shouldLogout) {
+        logout();
+      }
+      return;
+    }
+
     Alert.alert(
       'Déconnexion',
       'Êtes-vous sûr de vouloir vous déconnecter ?',
