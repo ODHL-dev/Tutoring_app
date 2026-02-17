@@ -14,7 +14,7 @@ Le projet **Tutoring App** est une plateforme éducative basée sur **React Nati
 |--------|----------|
 | **Code Unique** | Une seule base à maintenir pour mobile + web |
 | **Développement Rapide** | Hot reload sur tous les appareils |
-| **Budget 0€** | Expo gratuit + Firebase Hosting gratuit |
+| **Budget 0€** | Expo gratuit + Firebase Hosting gratuit | Hein fnx
 | **Performance** | Code natif sur mobile, optimisé sur web |
 | **Scalabilité** | Facile d'ajouter des fonctionnalités |
 
@@ -269,7 +269,7 @@ Tout fonctionne en local d'abord, synchronisation cloud après.
 Le state est centralisé dans des "stores" Zustand. Pas besoin de passer props à travers 10 niveaux de composants.
 
 ### Persistance Automatique
-AsyncStorage sauvegarde automatiquement les données importantes. Hors-ligne = pas de problème.
+AsyncStorage sauvegarde automatiquement les données importantes(Sauvegarde dans quoi ?). Hors-ligne = pas de problème.
 
 ### Navigation Intelligente
 React Navigation change automatiquement l'écran selon `isAuthenticated`. Pas de logique conditionnelle compliquée.
