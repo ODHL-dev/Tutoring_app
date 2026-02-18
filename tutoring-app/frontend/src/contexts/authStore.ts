@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
+import apiClient from '../api/client';
 
 export interface User {
   id: string;
@@ -21,8 +22,8 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
-
-  login: (email: string, password: string) => Promise<void>;
+  token: string | null; // Ajouté pour stocker le JWT
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   register: (
     firstName: string,
     lastName: string,
@@ -40,103 +41,60 @@ interface AuthState {
 }
 
 export const useAuthStore = create<AuthState>()(
-  immer((set, get) => ({
+  immer((set) => ({
     user: null,
     isAuthenticated: false,
     isLoading: false,
     error: null,
+    token: null,
 
-    login: async (email: string, password: string) => {
+    login: async (email, password) => {
       set((state) => {
         state.isLoading = true;
         state.error = null;
       });
 
       try {
-        // TODO: Intégrer avec l'authentification réelle
-        // Pour maintenant, comptes de test en local
-        const testUsers: Array<User & { password: string }> = [
-          {
-            id: 'test-teacher',
-            name: 'Prof Test',
-            firstName: 'Prof',
-            lastName: 'Test',
-            email: 'prof@test.com',
-            password: '123456',
-            role: 'teacher',
-            teachingCycle: 'secondaire',
-            createdAt: new Date(),
-          },
-          {
-            id: 'test-web-student',
-            name: 'Eleve Web',
-            firstName: 'Eleve',
-            lastName: 'Web',
-            email: 'web@test.com',
-            password: '123456',
-            role: 'student',
-            classCycle: 'secondaire',
-            classLevel: '3e',
-            series: 'A',
-            createdAt: new Date(),
-          },
-          {
-            id: 'test-student',
-            name: 'Eleve Test',
-            firstName: 'Eleve',
-            lastName: 'Test',
-            email: 'eleve@test.com',
-            password: '123456',
-            role: 'student',
-            classCycle: 'secondaire',
-            classLevel: '3e',
-            series: 'A',
-            createdAt: new Date(),
-          },
-        ];
-
-        const matchedUser = testUsers.find(
-          (item) => item.email.toLowerCase() === email.toLowerCase() && item.password === password
-        );
-
-        if (!matchedUser) {
-          throw new Error('Identifiants invalides');
-        }
-
-        const { password: _, ...mockUser } = matchedUser;
-
+        // 1. Appel au backend Django pour obtenir le token
+        const response = await apiClient.post('auth/login/', { 
+          username: email, // Django utilise souvent le username, adapte si ton backend attend 'email'
+          password 
+        });
+        
+        const { access } = response.data;
+        
+        // 2. Configurer Axios pour les futures requêtes
+        apiClient.defaults.headers.common['Authorization'] = `Bearer ${access}`;
+        
+        // 3. Récupérer les infos réelles du profil depuis le backend
+        const profileRes = await apiClient.get('auth/profile/');
+        
         set((state) => {
-          state.user = mockUser;
+          state.user = profileRes.data;
+          state.token = access;
           state.isAuthenticated = true;
           state.isLoading = false;
         });
-      } catch (error) {
+
+        return { success: true };
+      } catch (error: any) {
+        const errorMessage = error.response?.data?.detail || "Identifiants incorrects";
         set((state) => {
-          state.error = error instanceof Error ? error.message : 'Erreur d\'authentification';
+          state.error = errorMessage;
           state.isLoading = false;
         });
-        throw error;
+        return { success: false, error: errorMessage };
       }
     },
 
-    register: async (
-      firstName: string,
-      lastName: string,
-      email: string,
-      password: string,
-      role: User['role'],
-      classCycle?: User['classCycle'],
-      classLevel?: string,
-      series?: string,
-      teachingCycle?: User['teachingCycle']
-    ) => {
+    register: async (firstName, lastName, email, password, role, classCycle, classLevel, series, teachingCycle) => {
       set((state) => {
         state.isLoading = true;
         state.error = null;
       });
 
       try {
-        // TODO: Intégrer avec l'enregistrement réelle
+        // Ici tu pourras plus tard ajouter l'appel API : await apiClient.post('auth/register/', {...})
         const mockUser: User = {
           id: Date.now().toString(),
           name: `${firstName} ${lastName}`.trim(),
@@ -144,39 +102,38 @@ export const useAuthStore = create<AuthState>()(
           lastName,
           email,
           role,
-          classCycle: role === 'student' ? classCycle : undefined,
-          classLevel: role === 'student' ? classLevel : undefined,
-          series: role === 'student' ? series : undefined,
-          teachingCycle: role === 'teacher' ? teachingCycle : undefined,
+          classCycle,
+          classLevel,
+          series,
+          teachingCycle,
           createdAt: new Date(),
         };
 
         set((state) => {
           state.user = mockUser;
-          state.isAuthenticated = false;
+          state.isAuthenticated = false; // On attend souvent la validation ou le login
           state.isLoading = false;
         });
       } catch (error) {
         set((state) => {
-          state.error = error instanceof Error ? error.message : 'Erreur d\'enregistrement';
+          state.error = error instanceof Error ? error.message : "Erreur d'enregistrement";
           state.isLoading = false;
         });
         throw error;
       }
     },
 
-    updateUserName: (name: string) => {
+    updateUserName: (name) => {
       set((state) => {
-        if (!state.user) {
-          return;
-        }
-        state.user.name = name.trim();
+        if (state.user) state.user.name = name.trim();
       });
     },
 
     logout: () => {
+      delete apiClient.defaults.headers.common['Authorization'];
       set((state) => {
         state.user = null;
+        state.token = null;
         state.isAuthenticated = false;
       });
     },
@@ -188,3 +145,4 @@ export const useAuthStore = create<AuthState>()(
     },
   }))
 );
+
