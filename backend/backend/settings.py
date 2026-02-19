@@ -155,3 +155,5 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     )
 }
+
+CHROMA_DB_PATH = os.path.join(BASE_DIR, 'chroma_db')
