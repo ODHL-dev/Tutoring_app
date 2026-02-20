@@ -220,7 +220,7 @@ function AppStack() {
       }}
     >
       {user?.role === 'teacher' ? (
-        <>
+        <Stack.Group>
           <Stack.Screen name="MainTabs" component={TeacherTabs} />
           <Stack.Screen
             name="Exercises"
@@ -259,9 +259,9 @@ function AppStack() {
               headerShown: false,
             }}
           />
-        </>
+        </Stack.Group>
       ) : (
-        <>
+        <Stack.Group>
           <Stack.Screen name="MainTabs" component={MainTabs} />
           <Stack.Screen
             name="Exercises"
@@ -300,7 +300,7 @@ function AppStack() {
               headerShown: false,
             }}
           />
-        </>
+        </Stack.Group>
       )}
       <Stack.Screen 
         name="Settings" 

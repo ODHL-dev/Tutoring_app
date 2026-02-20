@@ -8,6 +8,7 @@ import { validatePassword } from '../utils/validation';
 import { Icon } from '../components/Icon';
 import { TextField } from '../components/TextField';
 import { Button } from '../components/Button';
+import apiClient from '../api/client';
 
 export default function SettingsScreen({ navigation }: any) {
   const { isDarkMode, colors, useSystemTheme } = useTheme();
@@ -27,6 +28,7 @@ export default function SettingsScreen({ navigation }: any) {
     newPassword: '',
     confirmPassword: '',
   });
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   useEffect(() => {
     setUserNameDraft(user?.name ?? '');
@@ -61,7 +63,7 @@ export default function SettingsScreen({ navigation }: any) {
     showMessage('Nom d\'utilisateur mis a jour.');
   };
 
-  const handleSavePassword = () => {
+  const handleSavePassword = async () => {
     const nextErrors = {
       currentPassword: '',
       newPassword: '',
@@ -91,10 +93,35 @@ export default function SettingsScreen({ navigation }: any) {
       return;
     }
 
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    showMessage('Mot de passe mis a jour.');
+    // Appel backend pour changer le mot de passe
+    setIsChangingPassword(true);
+    try {
+      const resp = await apiClient.post('auth/change-password/', {
+        current_password: currentPassword,
+        new_password: newPassword,
+      });
+
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      showMessage(resp.data?.detail || 'Mot de passe mis à jour.');
+      setPasswordErrors({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    } catch (err: any) {
+      const data = err.response?.data;
+      const next = { currentPassword: '', newPassword: '', confirmPassword: '' };
+      if (data) {
+        if (data.current_password) next.currentPassword = Array.isArray(data.current_password) ? data.current_password.join(' ') : String(data.current_password);
+        if (data.new_password) next.newPassword = Array.isArray(data.new_password) ? data.new_password.join(' ') : String(data.new_password);
+        if (data.detail) {
+          showMessage(String(data.detail));
+        }
+      } else {
+        showMessage('Erreur lors de la modification du mot de passe');
+      }
+      setPasswordErrors(next);
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
   const styles = StyleSheet.create({
@@ -366,7 +393,7 @@ export default function SettingsScreen({ navigation }: any) {
                 secureTextEntry
               />
               <View style={styles.formActions}>
-                <Button title="Mettre a jour" onPress={handleSavePassword} fullWidth />
+                <Button title="Mettre a jour" onPress={handleSavePassword} fullWidth loading={isChangingPassword} />
               </View>
             </View>
           </View>

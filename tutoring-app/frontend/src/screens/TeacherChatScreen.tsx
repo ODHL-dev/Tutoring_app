@@ -14,6 +14,7 @@ import {
 import { useTheme } from '../hooks/useTheme';
 import { borderRadius, spacing, typography, webMaxWidth } from '../styles/theme';
 import { Icon } from '../components/Icon';
+import apiClient from '../api/client';
 
 type ChatRole = 'user' | 'assistant';
 
@@ -157,7 +158,7 @@ export default function TeacherChatScreen() {
     [colors]
   );
 
-  const handleSend = (text?: string) => {
+  const handleSend = async (text?: string) => {
     const content = (text ?? input).trim();
     if (!content) return;
 
@@ -172,16 +173,39 @@ export default function TeacherChatScreen() {
     setInput('');
     setIsTyping(true);
 
-    setTimeout(() => {
+    try {
+      const res = await apiClient.post('/auth/chat/', { message: content });
+      const data = res.data ?? res;
+      const assistantText = data.reply || 'Désolé, aucune réponse.';
       const reply: ChatMessage = {
         id: `a-${Date.now()}`,
         role: 'assistant',
-        text: buildAssistantReply(content),
+        text: assistantText,
         timestamp: formatTime(),
       };
       setMessages((prev) => [...prev, reply]);
+
+      if (data.sources && Array.isArray(data.sources) && data.sources.length) {
+        const srcText = 'Sources: ' + data.sources.map((s: any) => s.source || s.id).join(', ');
+        const srcMsg: ChatMessage = {
+          id: `s-${Date.now()}`,
+          role: 'assistant',
+          text: srcText,
+          timestamp: formatTime(),
+        };
+        setMessages((prev) => [...prev, srcMsg]);
+      }
+    } catch (err) {
+      const errMsg: ChatMessage = {
+        id: `e-${Date.now()}`,
+        role: 'assistant',
+        text: 'Erreur de connexion au tuteur. Veuillez réessayer.',
+        timestamp: formatTime(),
+      };
+      setMessages((prev) => [...prev, errMsg]);
+    } finally {
       setIsTyping(false);
-    }, 650);
+    }
   };
 
   const renderMessage = ({ item }: { item: ChatMessage }) => {
