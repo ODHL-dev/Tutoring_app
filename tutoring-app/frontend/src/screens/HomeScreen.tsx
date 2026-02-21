@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { View, ScrollView, SafeAreaView, StyleSheet, FlatList, Text, TouchableOpacity, Platform, useWindowDimensions } from 'react-native';
 import { useAuth } from '../hooks/useAuth';
 import { useTheme } from '../hooks/useTheme';
-import { useGroupStore } from '../contexts/groupStore';
 import { spacing, typography, borderRadius, webMaxWidth } from '../styles/theme';
 import { HeaderUser } from '../components/HeaderUser';
 import { StreakCounter } from '../components/StreakCounter';
@@ -26,7 +25,7 @@ interface Course {
 export default function HomeScreen({ navigation }: any) {
   const { user } = useAuth();
   const { colors } = useTheme();
-  const { getGroupsByUser } = useGroupStore();
+  
   const { width } = useWindowDimensions();
   const isWeb = Platform.OS === 'web';
   const isWide = isWeb && width >= 1024;
@@ -35,7 +34,7 @@ export default function HomeScreen({ navigation }: any) {
   const [streak] = useState(5);
   const [xp] = useState(2450);
   const [currentProgress] = useState(0.6);
-  const groups = user ? getGroupsByUser(user.id) : [];
+  
 
   const courses: Course[] = [
     { id: '1', iconName: 'book-open-variant', iconLibrary: 'MaterialCommunity', code: 'FR', name: 'Français', level: 4 },
@@ -119,52 +118,7 @@ export default function HomeScreen({ navigation }: any) {
     footerButton: {
       marginTop: spacing.lg,
     },
-    groupCard: {
-      backgroundColor: colors.white,
-      borderRadius: borderRadius.lg,
-      padding: spacing.md,
-      marginBottom: spacing.md,
-      borderWidth: 1,
-      borderColor: colors.gray100,
-      ...(isWeb
-        ? { boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.06)' }
-        : {
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.06,
-            shadowRadius: 4,
-            elevation: 2,
-          }),
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-    },
-    groupInfo: {
-      flex: 1,
-      gap: spacing.xs,
-    },
-    groupName: {
-      ...typography.h4,
-      color: colors.gray900,
-      fontWeight: '700',
-    },
-    groupMeta: {
-      ...typography.body2,
-      color: colors.gray600,
-    },
-    groupCode: {
-      marginTop: spacing.xs,
-      alignSelf: 'flex-start',
-      backgroundColor: colors.primaryLight,
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xs,
-      borderRadius: borderRadius.sm,
-    },
-    groupCodeText: {
-      ...typography.label,
-      color: colors.primary,
-      fontWeight: '700',
-    },
+    
     emptyText: {
       ...typography.body1,
       color: colors.gray600,
@@ -203,9 +157,7 @@ export default function HomeScreen({ navigation }: any) {
     navigation.navigate('Progress');
   };
 
-  const handleJoinGroupPress = () => {
-    navigation.navigate('GroupInvite', { mode: 'join' });
-  };
+  
 
   const coursesContent = isWide ? (
     <View style={styles.courseGrid}>
@@ -296,15 +248,7 @@ export default function HomeScreen({ navigation }: any) {
             color={colors.info}
           />
         </View>
-        <View style={styles.quickActionWrapper}>
-          <QuickActionButton
-            iconName="users"
-            iconLibrary="Feather"
-            label="Rejoindre"
-            onPress={handleJoinGroupPress}
-            color={colors.primary}
-          />
-        </View>
+        
       </View>
     </View>
   );
@@ -371,34 +315,7 @@ export default function HomeScreen({ navigation }: any) {
     </View>
   );
 
-  const groupsSection = (
-    <View style={styles.section}>
-      <View style={styles.sectionTitleWrapper}>
-        <SectionTitle title="Mes groupes" iconName="users" iconLibrary="Feather" actionText="Voir tout" />
-      </View>
-      {groups.length > 0 ? (
-        groups.map((group) => (
-          <TouchableOpacity
-            key={group.id}
-            style={styles.groupCard}
-            onPress={() => navigation.navigate('GroupDetail', { groupId: group.id })}
-            activeOpacity={0.7}
-          >
-            <View style={styles.groupInfo}>
-              <Text style={styles.groupName}>{group.name}</Text>
-              <Text style={styles.groupMeta}>{group.memberCount} membres</Text>
-              <View style={styles.groupCode}>
-                <Text style={styles.groupCodeText}>Code: {group.code}</Text>
-              </View>
-            </View>
-            <Icon library="Feather" name="chevron-right" size={20} color={colors.gray400} />
-          </TouchableOpacity>
-        ))
-      ) : (
-        <Text style={styles.emptyText}>Vous n'avez pas encore rejoint de groupe.</Text>
-      )}
-    </View>
-  );
+  
 
   const statsSection = (
     <View style={styles.section}>
@@ -407,12 +324,11 @@ export default function HomeScreen({ navigation }: any) {
   );
 
   const contentBody = isWide ? (
-    <View style={styles.grid}>
+      <View style={styles.grid}>
       <View style={styles.column}>
         {headerSection}
         {streakSection}
         {quickActionsSection}
-        {groupsSection}
       </View>
       <View style={styles.column}>
         {heroSection}
@@ -429,7 +345,6 @@ export default function HomeScreen({ navigation }: any) {
       {heroSection}
       {objectiveSection}
       {coursesSection}
-      {groupsSection}
       {statsSection}
     </>
   );

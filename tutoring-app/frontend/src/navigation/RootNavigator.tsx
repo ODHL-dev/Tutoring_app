@@ -17,12 +17,8 @@ import ExercisesScreen from '../screens/ExercisesScreen';
 import ProgressScreen from '../screens/ProgressScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import SettingsScreen from '../screens/SettingsScreen';
-import TeacherDashboardScreen from '../screens/TeacherDashboardScreen';
-import TeacherChatScreen from '../screens/TeacherChatScreen';
-import ClassDetailScreen from '../screens/ClassDetailScreen';
-import GroupDetailScreen from '../screens/GroupDetailScreen';
-import GroupListScreen from '../screens/GroupListScreen';
-import GroupInviteScreen from '../screens/GroupInviteScreen';
+// Teacher screens removed
+// Group screens removed
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -39,18 +35,13 @@ const linkingConfig = {
           Chat: 'tutor',
           Lessons: 'lessons',
           Profile: 'profile',
-          TeacherHome: 'teacher',
-          TeacherChat: 'teacher/tutor',
-          TeacherGroups: 'teacher/groups',
-          TeacherProfile: 'teacher/profile',
         },
       },
       LessonDetail: 'lessons/:lessonId',
       Exercises: 'exercises',
       Progress: 'progress',
       ClassDetail: 'classes/:classId',
-      GroupDetail: 'groups/:groupId',
-      GroupInvite: 'join/:code',
+      
       Settings: 'settings',
     },
   },
@@ -162,46 +153,13 @@ function TeacherTabs() {
       }}
     >
       <Tab.Screen
-        name="TeacherHome"
-        component={TeacherDashboardScreen}
+        name="Home"
+        component={HomeScreen}
         options={{
           title: 'Accueil',
           tabBarLabel: 'Accueil',
           tabBarIcon: ({ color, size }) => (
             <Icon library="Feather" name="home" size={size ?? 20} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="TeacherChat"
-        component={TeacherChatScreen}
-        options={{
-          title: 'Tuteur',
-          tabBarLabel: 'Tuteur',
-          tabBarIcon: ({ color, size }) => (
-            <Icon library="Feather" name="message-circle" size={size ?? 20} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="TeacherGroups"
-        component={GroupListScreen}
-        options={{
-          title: 'Groupes',
-          tabBarLabel: 'Groupes',
-          tabBarIcon: ({ color, size }) => (
-            <Icon library="Feather" name="users" size={size ?? 20} color={color} />
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="TeacherProfile"
-        component={ProfileScreen}
-        options={{
-          title: 'Profil',
-          tabBarLabel: 'Profil',
-          tabBarIcon: ({ color, size }) => (
-            <Icon library="Feather" name="user" size={size ?? 20} color={color} />
           ),
         }}
       />
@@ -211,7 +169,6 @@ function TeacherTabs() {
 
 function AppStack() {
   const { colors } = useTheme();
-  const { user } = useAuth();
   
   return (
     <Stack.Navigator
@@ -219,89 +176,32 @@ function AppStack() {
         headerShown: false,
       }}
     >
-      {user?.role === 'teacher' ? (
-        <Stack.Group>
-          <Stack.Screen name="MainTabs" component={TeacherTabs} />
-          <Stack.Screen
-            name="Exercises"
-            component={ExercisesScreen}
-            options={{
-              headerShown: true,
-              title: 'Exercices',
-            }}
-          />
-          <Stack.Screen
-            name="Progress"
-            component={ProgressScreen}
-            options={{
-              headerShown: true,
-              title: 'Progression',
-            }}
-          />
-          <Stack.Screen 
-            name="ClassDetail" 
-            component={ClassDetailScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="GroupDetail"
-            component={GroupDetailScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="GroupInvite"
-            component={GroupInviteScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
-        </Stack.Group>
-      ) : (
-        <Stack.Group>
-          <Stack.Screen name="MainTabs" component={MainTabs} />
-          <Stack.Screen
-            name="Exercises"
-            component={ExercisesScreen}
-            options={{
-              headerShown: true,
-              title: 'Exercices',
-            }}
-          />
-          <Stack.Screen
-            name="Progress"
-            component={ProgressScreen}
-            options={{
-              headerShown: true,
-              title: 'Progression',
-            }}
-          />
-          <Stack.Screen 
-            name="LessonDetail" 
-            component={LessonDetailScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="GroupDetail"
-            component={GroupDetailScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
-          <Stack.Screen
-            name="GroupInvite"
-            component={GroupInviteScreen}
-            options={{
-              headerShown: false,
-            }}
-          />
-        </Stack.Group>
-      )}
+      <Stack.Group>
+        <Stack.Screen name="MainTabs" component={MainTabs} />
+        <Stack.Screen
+          name="Exercises"
+          component={ExercisesScreen}
+          options={{
+            headerShown: true,
+            title: 'Exercices',
+          }}
+        />
+        <Stack.Screen
+          name="Progress"
+          component={ProgressScreen}
+          options={{
+            headerShown: true,
+            title: 'Progression',
+          }}
+        />
+        <Stack.Screen 
+          name="LessonDetail" 
+          component={LessonDetailScreen}
+          options={{
+            headerShown: false,
+          }}
+        />
+      </Stack.Group>
       <Stack.Screen 
         name="Settings" 
         component={SettingsScreen}
@@ -335,13 +235,6 @@ export function RootNavigator() {
     if (!currentRoute) return;
 
     const authRoutes = new Set(['Login', 'Register']);
-    const teacherOnlyRoutes = new Set([
-      'TeacherHome',
-      'TeacherChat',
-      'TeacherGroups',
-      'TeacherProfile',
-      'ClassDetail',
-    ]);
 
     if (!isAuthenticated && !authRoutes.has(currentRoute.name)) {
       navigationRef.reset({
@@ -350,14 +243,7 @@ export function RootNavigator() {
       });
       return;
     }
-
-    if (isAuthenticated && user?.role !== 'teacher' && teacherOnlyRoutes.has(currentRoute.name)) {
-      navigationRef.reset({
-        index: 0,
-        routes: [{ name: 'MainTabs' }],
-      });
-    }
-  }, [isAuthenticated, navigationRef, user?.role]);
+  }, [isAuthenticated, navigationRef]);
 
   useEffect(() => {
     enforceWebRoutes();

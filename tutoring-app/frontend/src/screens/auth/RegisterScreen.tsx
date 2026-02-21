@@ -15,7 +15,6 @@ import { spacing, typography, webMaxWidth } from '../../styles/theme';
 export default function RegisterScreen({ navigation }: any) {
   const { register, isLoading, error } = useAuth();
   const { colors } = useTheme();
-  const [profession, setProfession] = useState<'student' | 'teacher'>('student');
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const { width } = useWindowDimensions();
   const isWeb = Platform.OS === 'web';
@@ -43,18 +42,18 @@ export default function RegisterScreen({ navigation }: any) {
     },
     onSubmit: async (vals) => {
       try {
-        // Appel de la fonction register mise à jour avec le username
+        // Register as student only
         await register(
-          vals.username, // <-- On l'envoie au store
+          vals.username,
           vals.firstName,
           vals.lastName,
           vals.email,
           vals.password,
-          profession,
-          profession === 'student' ? (vals.classCycle as any) : undefined,
-          profession === 'student' ? vals.classLevel : undefined,
-          profession === 'student' ? vals.series : undefined,
-          profession === 'teacher' ? (vals.teachingCycle as any) : undefined
+          'student',
+          vals.classCycle as any,
+          vals.classLevel,
+          vals.series,
+          undefined
         );
         // Redirection vers le login après succès
         navigation.navigate('Login');
@@ -94,16 +93,11 @@ export default function RegisterScreen({ navigation }: any) {
     }
 
     if (step === 2) {
-      if (profession === 'student') {
-        if (!values.classCycle) stepErrors.classCycle = 'Le cycle est requis';
-        if (!values.classLevel) stepErrors.classLevel = 'La classe est requise';
-        const needsSeries = ['2nde', '1ere', 'Terminale'].includes(values.classLevel);
-        if (values.classCycle === 'secondaire' && needsSeries && !values.series) {
-          stepErrors.series = 'La serie est requise';
-        }
-      }
-      if (profession === 'teacher' && !values.teachingCycle) {
-        stepErrors.teachingCycle = 'Le cycle est requis';
+      if (!values.classCycle) stepErrors.classCycle = 'Le cycle est requis';
+      if (!values.classLevel) stepErrors.classLevel = 'La classe est requise';
+      const needsSeries = ['2nde', '1ere', 'Terminale'].includes(values.classLevel);
+      if (values.classCycle === 'secondaire' && needsSeries && !values.series) {
+        stepErrors.series = 'La serie est requise';
       }
     }
 
@@ -254,65 +248,32 @@ export default function RegisterScreen({ navigation }: any) {
 
             {step === 2 && (
               <>
-                <View style={styles.roleSection}>
-                  <Text style={styles.roleLabel}>Profession :</Text>
-                  <View style={styles.roleContainer}>
-                    <TouchableOpacity
-                      style={[styles.roleButton, profession === 'student' ? styles.roleButtonActive : styles.roleButtonInactive]}
-                      onPress={() => { setProfession('student'); handleChange('teachingCycle', ''); }}
-                    >
-                      <Text style={[styles.roleButtonText, { color: profession === 'student' ? colors.secondary : colors.gray600 }]}>Étudiant</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.roleButton, profession === 'teacher' ? styles.roleButtonActive : styles.roleButtonInactive]}
-                      onPress={() => { setProfession('teacher'); handleChange('classCycle', ''); handleChange('classLevel', ''); handleChange('series', ''); }}
-                    >
-                      <Text style={[styles.roleButtonText, { color: profession === 'teacher' ? colors.secondary : colors.gray600 }]}>Enseignant</Text>
-                    </TouchableOpacity>
-                  </View>
+                <View style={styles.extraSection}>
+                  <Text style={styles.selectLabel}>Cycle</Text>
+                  <TouchableOpacity style={[styles.selectField, errors.classCycle ? styles.selectFieldError : null]} onPress={() => openSelect('Choisir un cycle', ['primaire', 'secondaire'], (value) => { handleChange('classCycle', value); handleChange('classLevel', ''); handleChange('series', ''); })}>
+                    <Text style={values.classCycle ? styles.selectTextValue : styles.selectTextPlaceholder}>{values.classCycle ? (values.classCycle === 'primaire' ? 'Primaire' : 'Secondaire') : 'Choisir un cycle'}</Text>
+                    <Icon library="Feather" name="chevron-down" size={18} color={colors.gray600} />
+                  </TouchableOpacity>
+                  {errors.classCycle && <Text style={styles.selectError}>{errors.classCycle}</Text>}
                 </View>
 
-                {profession === 'student' && (
-                  <>
-                    <View style={styles.extraSection}>
-                      <Text style={styles.selectLabel}>Cycle</Text>
-                      <TouchableOpacity style={[styles.selectField, errors.classCycle ? styles.selectFieldError : null]} onPress={() => openSelect('Choisir un cycle', ['primaire', 'secondaire'], (value) => { handleChange('classCycle', value); handleChange('classLevel', ''); handleChange('series', ''); })}>
-                        <Text style={values.classCycle ? styles.selectTextValue : styles.selectTextPlaceholder}>{values.classCycle ? (values.classCycle === 'primaire' ? 'Primaire' : 'Secondaire') : 'Choisir un cycle'}</Text>
-                        <Icon library="Feather" name="chevron-down" size={18} color={colors.gray600} />
-                      </TouchableOpacity>
-                      {errors.classCycle && <Text style={styles.selectError}>{errors.classCycle}</Text>}
-                    </View>
+                <View style={styles.extraSection}>
+                  <Text style={styles.selectLabel}>Classe</Text>
+                  <TouchableOpacity style={[styles.selectField, errors.classLevel ? styles.selectFieldError : null]} onPress={() => { if (!values.classCycle) { setFieldError('classCycle', 'Le cycle est requis'); return; } openSelect('Choisir une classe', classOptions, (value) => { handleChange('classLevel', value); if (!['2nde', '1ere', 'Terminale'].includes(value)) handleChange('series', ''); }); }}>
+                    <Text style={values.classLevel ? styles.selectTextValue : styles.selectTextPlaceholder}>{values.classLevel || 'Choisir une classe'}</Text>
+                    <Icon library="Feather" name="chevron-down" size={18} color={colors.gray600} />
+                  </TouchableOpacity>
+                  {errors.classLevel && <Text style={styles.selectError}>{errors.classLevel}</Text>}
+                </View>
 
-                    <View style={styles.extraSection}>
-                      <Text style={styles.selectLabel}>Classe</Text>
-                      <TouchableOpacity style={[styles.selectField, errors.classLevel ? styles.selectFieldError : null]} onPress={() => { if (!values.classCycle) { setFieldError('classCycle', 'Le cycle est requis'); return; } openSelect('Choisir une classe', classOptions, (value) => { handleChange('classLevel', value); if (!['2nde', '1ere', 'Terminale'].includes(value)) handleChange('series', ''); }); }}>
-                        <Text style={values.classLevel ? styles.selectTextValue : styles.selectTextPlaceholder}>{values.classLevel || 'Choisir une classe'}</Text>
-                        <Icon library="Feather" name="chevron-down" size={18} color={colors.gray600} />
-                      </TouchableOpacity>
-                      {errors.classLevel && <Text style={styles.selectError}>{errors.classLevel}</Text>}
-                    </View>
-
-                    {values.classCycle === 'secondaire' && needsSeries && (
-                      <View style={styles.extraSection}>
-                        <Text style={styles.selectLabel}>Série</Text>
-                        <TouchableOpacity style={[styles.selectField, errors.series ? styles.selectFieldError : null]} onPress={() => openSelect('Choisir une série', seriesOptions, (value) => { handleChange('series', value); })}>
-                          <Text style={values.series ? styles.selectTextValue : styles.selectTextPlaceholder}>{values.series || 'Choisir une série'}</Text>
-                          <Icon library="Feather" name="chevron-down" size={18} color={colors.gray600} />
-                        </TouchableOpacity>
-                        {errors.series && <Text style={styles.selectError}>{errors.series}</Text>}
-                      </View>
-                    )}
-                  </>
-                )}
-
-                {profession === 'teacher' && (
+                {values.classCycle === 'secondaire' && needsSeries && (
                   <View style={styles.extraSection}>
-                    <Text style={styles.selectLabel}>Cycle d'enseignement</Text>
-                    <TouchableOpacity style={[styles.selectField, errors.teachingCycle ? styles.selectFieldError : null]} onPress={() => openSelect('Choisir un cycle', ['primaire', 'secondaire'], (value) => { handleChange('teachingCycle', value); })}>
-                      <Text style={values.teachingCycle ? styles.selectTextValue : styles.selectTextPlaceholder}>{values.teachingCycle ? (values.teachingCycle === 'primaire' ? 'Primaire' : 'Secondaire') : 'Choisir un cycle'}</Text>
+                    <Text style={styles.selectLabel}>Série</Text>
+                    <TouchableOpacity style={[styles.selectField, errors.series ? styles.selectFieldError : null]} onPress={() => openSelect('Choisir une série', seriesOptions, (value) => { handleChange('series', value); })}>
+                      <Text style={values.series ? styles.selectTextValue : styles.selectTextPlaceholder}>{values.series || 'Choisir une série'}</Text>
                       <Icon library="Feather" name="chevron-down" size={18} color={colors.gray600} />
                     </TouchableOpacity>
-                    {errors.teachingCycle && <Text style={styles.selectError}>{errors.teachingCycle}</Text>}
+                    {errors.series && <Text style={styles.selectError}>{errors.series}</Text>}
                   </View>
                 )}
               </>

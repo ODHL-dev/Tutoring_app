@@ -10,7 +10,6 @@ export function useAuth() {
     error: auth.error,
     login: auth.login,
     register: auth.register,
-    updateUserName: auth.updateUserName,
     logout: auth.logout,
     clearError: auth.clearError,
   };

@@ -94,11 +94,11 @@ export default function LoginScreen({ navigation }: any) {
                   <Text style={styles.panelBadgeText}>TUTORAT IA</Text>
                 </View>
                 <Text style={styles.panelTitle}>Votre apprentissage, plus clair.</Text>
-                <Text style={styles.panelSubtitle}>Des parcours sur mesure, un suivi régulier et des groupes d'etude motives.</Text>
+                <Text style={styles.panelSubtitle}>Des parcours sur mesure et un suivi régulier pour progresser.</Text>
                 <View style={styles.panelList}>
                   <View style={styles.panelItem}><View style={styles.panelDot} /><Text style={styles.panelText}>Suivi intelligent et objectifs hebdomadaires.</Text></View>
                   <View style={styles.panelItem}><View style={styles.panelDot} /><Text style={styles.panelText}>Sessions IA et exercices adaptes.</Text></View>
-                  <View style={styles.panelItem}><View style={styles.panelDot} /><Text style={styles.panelText}>Communautes et entraide par groupes.</Text></View>
+                  <View style={styles.panelItem}><View style={styles.panelDot} /><Text style={styles.panelText}>Communautés et entraide entre apprenants.</Text></View>
                 </View>
               </View>
 

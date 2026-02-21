@@ -1,0 +1,36 @@
+Salut ! Content de te retrouver pour la suite de ce projet.
+
+D'après l'analyse des fichiers actuels, ton projet est une **Plateforme de Tutorat Intelligent (IA Hybride)** utilisant **Django** pour le backend et **React Native (Expo)** pour le frontend.
+
+Actuellement, la structure du backend est initialisée (Django 4.2.11), mais les applications spécifiques (authentification, cours, groupes) ne sont pas encore configurées dans les `INSTALLED_APPS`. Le frontend a déjà ses écrans principaux (Login, Chat, Lessons) et utilise **Zustand** pour la gestion d'état.
+
+Voici l'analyse de ce qui doit être fait, étape par étape, pour rendre le système fonctionnel :
+
+### Étape 1 : Configuration et Initialisation du Backend
+
+* **Objectif :** Préparer l'environnement Django pour accueillir l'API.
+* **Actions :** Installer les dépendances (Django REST Framework, CORS headers, MySQL client), créer les applications Django (`authentication`, `courses`, `chat`), et configurer la base de données MySQL.
+
+### Étape 2 : Système d'Authentification (Backend + Frontend)
+
+* **Objectif :** Permettre aux utilisateurs de s'inscrire et de se connecter.
+* **Actions :** Créer le modèle utilisateur personnalisé, configurer l'authentification JWT (Simple JWT), et relier le `LoginScreen.tsx` du frontend à l'API.
+
+### Étape 3 : Gestion des Cours et de la Progression
+
+* **Objectif :** Gérer les leçons et stocker la progression des élèves.
+* **Actions :** Créer les modèles pour les Cours, Chapitres et Progression. Développer les endpoints pour récupérer les leçons hors-ligne (JSON).
+
+### Étape 4 : Intégration de l'IA et du Chat (Cœur du projet)
+
+* **Objectif :** Mettre en place le tuteur socratique.
+* **Actions :** Configurer l'orchestration des modèles (Llama 3.2 1B pour le mobile ou via API pour le test), implémenter le système de RAG local pour consulter les leçons, et gérer les WebSockets pour le chat en temps réel.
+
+### Étape 5 : Fonctionnalités Avancées et Synchronisation
+
+* **Objectif :** Ajouter l'OCR et la répétition espacée.
+* **Actions :** Intégrer Google ML Kit pour l'OCR des exercices et implémenter l'algorithme SM-2 pour la planification des révisions.
+
+---
+
+**Es-tu prêt à commencer l'Étape 1 ?** Si oui, nous allons commencer par configurer les dépendances nécessaires pour ton backend Django. Dis-le moi et je te donnerai les commandes et le code pour le premier fichier.

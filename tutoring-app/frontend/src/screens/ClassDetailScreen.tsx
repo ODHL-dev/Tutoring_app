@@ -1,22 +1,35 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, Modal, TextInput } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
 import { useTheme } from '../hooks/useTheme';
-import { useTeacherStore } from '../contexts/teacherStore';
-import { spacing, typography, borderRadius, webMaxWidth } from '../styles/theme';
-import { Icon } from '../components/Icon';
-import { Button } from '../components/Button';
+import { spacing, typography, webMaxWidth } from '../styles/theme';
 
-export default function ClassDetailScreen({ route, navigation }: any) {
+export default function ClassDetailScreen() {
   const { colors } = useTheme();
-  const { classId } = route.params;
-  const { getClassById, getPDFsByClass, addPDF, getClassProgress } = useTeacherStore();
-  const classData = getClassById(classId);
-  const pdfs = getPDFsByClass(classId);
-  const studentProgress = getClassProgress(classId);
   
-  const [activeTab, setActiveTab] = useState<'pdfs' | 'progress'>('pdfs');
-  const [showAddPDFModal, setShowAddPDFModal] = useState(false);
-  const [pdfName, setPdfName] = useState('');
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.gray50,
+    },
+    content: {
+      padding: spacing.lg,
+      ...webMaxWidth(900),
+    },
+    emptyText: {
+      ...typography.body1,
+      color: colors.gray600,
+      textAlign: 'center',
+    },
+  });
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <Text style={styles.emptyText}>Détail des classes — fonctionnalité désactivée.</Text>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
 
   const handleAddPDF = () => {
     if (pdfName.trim() && classData) {

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, StudentProfile, TeacherProfile
+from .models import User, StudentProfile, TeacherProfile, UserMatter, ConversationSummary
 
 class StudentProfileSerializer(serializers.ModelSerializer):
     class Meta:
@@ -87,3 +87,76 @@ class ChangePasswordSerializer(serializers.Serializer):
         user.set_password(self.validated_data['new_password'])
         user.save()
         return user
+
+# ====== SERIALIZERS POUR GRASSS ======
+
+class UserMatterSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserMatter  # À importer
+        fields = ['id', 'matiere', 'chapitre', 'objectif', 'niveau_difficulte', 'progression', 'created_at', 'updated_at']
+        read_only_fields = ['created_at', 'updated_at']
+
+
+class ConversationSummarySerializer(serializers.ModelSerializer):
+    matter_details = UserMatterSerializer(source='user_matter', read_only=True)
+    
+    class Meta:
+        model = ConversationSummary  # À importer
+        fields = ['id', 'summary_text', 'key_concepts', 'matter_details', 'created_at']
+        read_only_fields = ['created_at']
+
+
+class DiagnosticResponseSerializer(serializers.Serializer):
+    """Serializer pour les réponses du diagnostic IA"""
+    questions = serializers.ListField(
+        child=serializers.DictField(),
+        required=False
+    )
+    niveau_diagnostique = serializers.CharField(required=False)
+    lacunes_identifiees = serializers.ListField(
+        child=serializers.CharField(),
+        required=False
+    )
+    points_forts = serializers.ListField(
+        child=serializers.CharField(),
+        required=False
+    )
+    vitesse_comprehension = serializers.CharField(required=False)
+    style_apprentissage_probable = serializers.CharField(required=False)
+    recommandations = serializers.ListField(
+        child=serializers.CharField(),
+        required=False
+    )
+    plan_action = serializers.DictField(required=False)
+
+
+class ExerciseResponseSerializer(serializers.Serializer):
+    """Serializer pour les réponses d'exercices QCM"""
+    question = serializers.CharField()
+    options = serializers.ListField(
+        child=serializers.DictField()
+    )
+    difficulty = serializers.CharField()
+    competencies = serializers.ListField(
+        child=serializers.CharField()
+    )
+    hint = serializers.CharField(required=False)
+
+
+class TutorRequestSerializer(serializers.Serializer):
+    """Serializer pour les requêtes au tuteur"""
+    matiere = serializers.CharField(max_length=100)
+    chapitre = serializers.CharField(max_length=200, required=False)
+    niveau_difficulte = serializers.CharField(required=False, default='moyen')
+    message = serializers.CharField(required=False)
+    action = serializers.ChoiceField(
+        choices=['diagnostic', 'exercise', 'tutor', 'remediation', 'summary'],
+        default='tutor'
+    )
+
+
+class TutorResponseSerializer(serializers.Serializer):
+    """Serializer pour les réponses du tuteur"""
+    content = serializers.CharField()
+    exercise = ExerciseResponseSerializer(required=False)
+    metadata = serializers.DictField(required=False)

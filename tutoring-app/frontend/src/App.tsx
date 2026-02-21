@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, useColorScheme, Appearance, Platform } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { lightColors, darkColors } from './styles/theme';
 import { useThemeStore } from './contexts/themeStore';
 import { RootNavigator } from './navigation/RootNavigator';
 
 export default function App() {
-  const systemColorScheme = useColorScheme();
-  const { isDarkMode, useSystemTheme, initializeTheme } = useThemeStore();
+  const { isDarkMode, initializeTheme } = useThemeStore();
   const [, setRefresh] = useState(0);
 
   // Initialiser le thème au démarrage
@@ -15,17 +14,8 @@ export default function App() {
     initializeTheme();
   }, [initializeTheme]);
 
-  // Forcer un re-render quand le thème système change
-  useEffect(() => {
-    const subscription = Appearance.addChangeListener(({ colorScheme }) => {
-      setRefresh((prev) => prev + 1);
-    });
-
-    return () => subscription.remove();
-  }, []);
-
   // Déterminer le mode actuel
-  const isCurrentlyDark = useSystemTheme ? systemColorScheme === 'dark' : isDarkMode;
+  const isCurrentlyDark = isDarkMode;
   const currentColors = isCurrentlyDark ? darkColors : lightColors;
 
   useEffect(() => {
@@ -46,7 +36,7 @@ export default function App() {
   }, [currentColors.gray50]);
 
   console.log('=== App rendering ===');
-  console.log('isDarkMode:', isCurrentlyDark, 'useSystemTheme:', useSystemTheme, 'systemScheme:', systemColorScheme);
+  console.log('isDarkMode:', isCurrentlyDark);
 
   const styles = StyleSheet.create({
     container: {

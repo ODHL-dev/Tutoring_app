@@ -9,12 +9,11 @@ export interface User {
   firstName?: string;
   lastName?: string;
   email?: string;
-  username?: string; // Ajouté pour correspondre à Django
-  role: 'student' | 'teacher';
+  username?: string;
+  role: 'student';
   classCycle?: 'primaire' | 'secondaire';
   classLevel?: string;
   series?: string;
-  teachingCycle?: 'primaire' | 'secondaire';
   profilePicture?: string;
   createdAt: Date;
 }    
@@ -50,7 +49,7 @@ interface AuthState {
     teachingCycle?: User['teachingCycle']
   ) => Promise<void>;
   
-  updateUserName: (name: string) => void;
+  // updateUserName removed — username changes are not supported from the app
   logout: () => Promise<void>;
   clearError: () => void;
 }
@@ -137,7 +136,7 @@ export const useAuthStore = create<AuthState>()(
             username: userData.username,
             // Si l'utilisateur n'a pas de nom/prénom, on affiche son pseudo
             name: `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || userData.username, 
-            role: userData.role || 'student', // Récupère le vrai rôle (student ou teacher)
+            role: 'student',
             createdAt: new Date() 
           };
           state.isLoading = false;
@@ -152,11 +151,7 @@ export const useAuthStore = create<AuthState>()(
       }
     },
 
-    updateUserName: (name) => {
-      set((state) => {
-        if (state.user) state.user.name = name.trim();
-      });
-    },
+    // updateUserName removed — no-op (username changes handled server-side if at all)
 
     // --- NOUVELLE LOGIQUE DE DECONNEXION ---
     logout: async () => {
