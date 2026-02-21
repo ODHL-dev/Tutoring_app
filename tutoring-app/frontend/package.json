@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "description": "Plateforme de Tutorat Intelligent (IA Hybride) - React Native + Expo",
   "main": "index.tsx",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
   "scripts": {
     "start": "expo start",
     "web": "expo start --web",
@@ -11,6 +15,8 @@
     "build:web": "expo export --platform web",
     "build:android": "eas build --platform android",
     "build:ios": "eas build --platform ios",
+    "serve": "node ../server.js",
+    "start:prod": "npm run build:web && npm run serve",
     "lint": "eslint src/**/*.{ts,tsx}",
     "format": "prettier --write src/**/*.{ts,tsx,json}"
   },
@@ -21,6 +27,8 @@
     "@react-navigation/native": "^6.1.9",
     "@react-navigation/stack": "^6.3.20",
     "axios": "^1.13.5",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
     "expo": "^54.0.32",
     "expo-camera": "~17.0.10",
     "expo-constants": "~18.0.13",
@@ -28,6 +36,7 @@
     "expo-splash-screen": "^31.0.13",
     "expo-status-bar": "~3.0.9",
     "immer": "^10.0.3",
+    "node-fetch": "^2.7.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.5",
@@ -38,12 +47,15 @@
     "react-native-screens": "~4.16.0",
     "react-native-svg": "15.12.1",
     "react-native-web": "^0.21.0",
+    "serve": "^14.2.0",
     "zustand": "^4.4.1"
   },
   "devDependencies": {
     "@types/jest": "29.5.14",
     "@types/react": "~19.1.10",
     "@types/react-dom": "~19.1.7",
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.10.6",
     "eslint": "^8.50.0",
     "eslint-config-prettier": "^9.0.0",
     "prettier": "^3.0.3",

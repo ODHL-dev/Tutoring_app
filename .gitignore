@@ -1,105 +1,116 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-*.egg-info/
-dist/
-build/
-.eggs/
-*.egg
-.Python
-env/
+# ============================================================================
+# Environment & Secrets
+# ============================================================================
 .env
-/home/felix/Documents/Documents/L3/Programmation web avancee/version1/Tutoring_app/.env
+.env.local
+.env.*.local
+*.pem
+*.key
+secrets/
+
+# ============================================================================
+# Backend (Django)
+# ============================================================================
+backend/db.sqlite3
+backend/staticfiles/
+backend/chroma_db/
+backend/__pycache__/
+backend/venv/
+backend/.venv/
+backend/*.log
+backend/local_settings.py
+backend/.DS_Store
+
+# ============================================================================
+# Frontend (Node.js / Expo)
+# ============================================================================
+tutoring-app/frontend/node_modules/
+tutoring-app/frontend/dist/
+tutoring-app/frontend/build/
+tutoring-app/frontend/.expo/
+tutoring-app/node_modules/
+tutoring-app/dist/
+tutoring-app/.expo/
+
+# ============================================================================
+# IDE & Tools
+# ============================================================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+
+# ============================================================================
+# OS
+# ============================================================================
+Thumbs.db
+.thumbs.db
+.AppleDouble
+.LSOverride
+
+# ============================================================================
+# Python Virtual Environments
+# ============================================================================
 venv/
-.venv/
 ENV/
-env.bak/
-venv.bak/
+env/
+.venv
 pip-log.txt
 pip-delete-this-directory.txt
 
-# Django
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
-media/
-staticfiles/
-coverage.xml
-htmlcov/
-
-# Chroma/Vector DB
-chroma_db/
-backend/chroma_db/
-**/chroma.sqlite3
-*.sqlite3
-
-# Environment files / secrets
-.env
-.env.*
-secrets.json
-
-# Node / Expo / frontend
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-package-lock.json
-.pnpm-debug.log
-.expo/
-.expo-shared/
-web-build/
-dist/
-.bundle
-
-# Android / iOS / build
-android/.gradle/
-android/app/build/
-android/build/
-*.keystore
-.gradle/
-*.apk
-*.apks
-*.aab
-ios/Pods/
-ios/build/
-*.xcodeproj/project.xcworkspace/
-
-# IDEs
-.vscode/
-.idea/
-*.iml
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-
-# pytest / coverage
-.pytest_cache/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-
-# Jupyter
-.ipynb_checkpoints/
-
-# Misc
-.python-version
-
-# Frontend lockfiles (local)
+# ============================================================================
+# Node Package Manager
+# ============================================================================
 npm-debug.log
+yarn-error.log
+.npm
+.yarn
+package-lock.json
 yarn.lock
 
-# Expo metro cache
-.expo/
+# ============================================================================
+# Expo/React Native
+# ============================================================================
+.expo-shared/
+.gradle/
+android/app/debug/
+android/app/release/
 
-# Local env markers
-local_settings.py
+# ============================================================================
+# Build Outputs
+# ============================================================================
+*.apk
+*.aab
+*.ipa
+dist/
+build/
+out/
 
-backend/documents_pedagogiques/*
+# ============================================================================
+# IDE Generated Files
+# ============================================================================
+*.pyc
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ============================================================================
+# Temporary Files
+# ============================================================================
+*.tmp
+*.temp
+*.bak
+*.cache
+.tmp/
+
+# ============================================================================
+# Railway Specific
+# ============================================================================
+railway.json
+.railway/

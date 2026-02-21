@@ -12,29 +12,38 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 import os
-from dotenv import load_dotenv # On importe la bibliothèque installée
+from dotenv import load_dotenv
+import dj_database_url
 
-# On charge le fichier .env
+# Load .env file for local development
 load_dotenv()
-
-# Désormais, on peut remplacer les valeurs en dur par os.getenv()
-SECRET_KEY = os.getenv('SECRET_KEY')
-DEBUG = os.getenv('DEBUG') == 'True' # Convertit le texte "True" en booléen
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# ============================================================================
+# SECURITY SETTINGS - PRODUCTION READY
+# ============================================================================
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
+# SECRET_KEY from environment (REQUIRED in production)
+SECRET_KEY = os.getenv('SECRET_KEY')
+if not SECRET_KEY:
+    raise RuntimeError(
+        "❌ SECRET_KEY environment variable is required. "
+        "Generate one: python -c \"from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())\""
+    )
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-+3j$2hbkysmrobc@!5ciwfvwi-p483k6_vh69*3s%zp80=hg(8'
+# DEBUG mode (default False for safety)
+DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = []
+# ALLOWED_HOSTS for production
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+if os.getenv('ENVIRONMENT') == 'production':
+    # In production, don't allow all hosts
+    DEBUG = False
+    ALLOWED_HOSTS = [h.strip() for h in ALLOWED_HOSTS if h.strip()]
+elif DEBUG:
+    ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -54,15 +63,15 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # Static files serving (first)
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  # CORS early
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'corsheaders.middleware.CorsMiddleware', # <--- ICI en premier
-    'django.middleware.common.CommonMiddleware',
 ]
 
 ROOT_URLCONF = 'backend.urls'
@@ -86,24 +95,30 @@ TEMPLATES = [
 WSGI_APPLICATION = 'backend.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
+# ============================================================================
+# DATABASE CONFIGURATION
+# ============================================================================
+# Supports DATABASE_URL from Railway or local MySQL config
 
-# Dans backend/backend/settings.py
+DATABASE_URL = os.getenv('DATABASE_URL')
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'tutoring_db',
-        'USER': 'tutoring_user',         # Ton nom d'utilisateur MySQL
-        'PASSWORD': 'votre_mot_de_passe_fort',         # Ton mot de passe MySQL
-        'HOST': '127.0.0.1',
-        'PORT': '3306',
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-        },
+if DATABASE_URL:
+    # Use DATABASE_URL from Railway or .env
+    DATABASES = {
+        'default': dj_database_url.parse(DATABASE_URL, conn_max_age=600)
     }
-}
+else:
+    # Local development fallback (SQLite)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+
+# Connection pooling for production
+if not DEBUG:
+    DATABASES['default']['CONN_MAX_AGE'] = 600
 
 
 # Password validation
@@ -137,10 +152,20 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/4.2/howto/static-files/
+# ============================================================================
+# STATIC FILES CONFIGURATION
+# ============================================================================
+# With WhiteNoise, staticfiles are served efficiently even in production
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static'),
+]
+
+# WhiteNoise config (compress + cache static files)
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
