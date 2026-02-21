@@ -4,7 +4,7 @@ from .models import User, StudentProfile, TeacherProfile, UserMatter, Conversati
 class StudentProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = StudentProfile
-        fields = ['class_cycle', 'class_level', 'series']
+        fields = ['class_cycle', 'class_level', 'series', 'diagnostic_completed']
 
 class TeacherProfileSerializer(serializers.ModelSerializer):
     class Meta:
@@ -143,6 +143,9 @@ class ExerciseResponseSerializer(serializers.Serializer):
     hint = serializers.CharField(required=False)
 
 
+CLASS_LEVEL_CHOICES = ['3ème', 'Terminale D']
+
+
 class TutorRequestSerializer(serializers.Serializer):
     """Serializer pour les requêtes au tuteur"""
     matiere = serializers.CharField(max_length=100)
@@ -153,6 +156,17 @@ class TutorRequestSerializer(serializers.Serializer):
         choices=['diagnostic', 'exercise', 'tutor', 'remediation', 'summary'],
         default='tutor'
     )
+    class_level = serializers.CharField(required=False, allow_blank=True)
+    student_answers = serializers.JSONField(required=False)
+
+    def validate_class_level(self, value):
+        if not value or not value.strip():
+            return value
+        if value.strip() not in CLASS_LEVEL_CHOICES:
+            raise serializers.ValidationError(
+                f'Classe non autorisée. Choix: {", ".join(CLASS_LEVEL_CHOICES)}'
+            )
+        return value.strip()
 
 
 class TutorResponseSerializer(serializers.Serializer):

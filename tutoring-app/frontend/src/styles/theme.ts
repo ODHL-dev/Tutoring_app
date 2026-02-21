@@ -11,6 +11,9 @@ export const lightColors = {
   // Neutrals
   white: '#FFFFFF',
   black: '#000000',
+  bg: '#F9FAFB',
+  cardBg: '#FFFFFF',
+  text: '#111827',
   gray50: '#F9FAFB',
   gray100: '#F3F4F6',
   gray200: '#E5E7EB',
@@ -44,6 +47,9 @@ export const darkColors = {
   // Neutrals
   white: '#0F172A', // Dark background (instead of white)
   black: '#F8FAFC', // Light text (instead of black)
+  bg: '#0F172A',
+  cardBg: '#1E293B',
+  text: '#F8FAFC',
   gray50: '#1E293B',
   gray100: '#334155',
   gray200: '#475569',

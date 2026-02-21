@@ -4,6 +4,7 @@ Endpoints pour le tutorat IA avec RAG
 """
 
 import json
+from django.utils import timezone
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -21,9 +22,61 @@ from prompts_templates import (
     get_diagnostic_prompt,
     get_exercise_prompt,
     get_tutor_prompt,
-    get_summary_prompt
+    get_summary_prompt,
+    EVALUATION_ANALYSIS_PROMPT,
 )
-from backend.rag_service import get_ai_response  # Service IA existant
+from backend.rag_service import get_ai_response  # Service IA existant (retourne {"reply": str, "sources": list})
+
+
+def _get_reply_text(ai_result):
+    """Extrait le texte de réponse du retour get_ai_response (dict ou str)."""
+    if isinstance(ai_result, dict):
+        return ai_result.get('reply', '') or ''
+    return str(ai_result)
+
+
+def _parse_json_from_reply(reply_text):
+    """Parse du JSON depuis la réponse IA (peut être entourée de ```json ... ```)."""
+    text = (reply_text or '').strip()
+    if not text:
+        return None
+    # Enlever blocs markdown
+    if '```' in text:
+        for start in ('```json', '```'):
+            if start in text:
+                i = text.find(start) + len(start)
+                j = text.find('```', i)
+                if j != -1:
+                    text = text[i:j].strip()
+                break
+    try:
+        return json.loads(text)
+    except Exception:
+        return None
+
+
+def _normalize_exercise_options(exercise_data):
+    """Garantit que exercise a une liste options utilisable par le frontend."""
+    options = exercise_data.get('options') if isinstance(exercise_data, dict) else None
+    if not isinstance(options, list) or len(options) == 0:
+        return [
+            {"id": "A", "text": "Option 1", "is_correct": True, "explanation": ""},
+            {"id": "B", "text": "Option 2", "is_correct": False, "explanation": ""},
+        ]
+    normalized = []
+    for i, opt in enumerate(options):
+        if not isinstance(opt, dict):
+            continue
+        normalized.append({
+            "id": str(opt.get('id', chr(65 + i))),
+            "text": str(opt.get('text', '')),
+            "is_correct": bool(opt.get('is_correct', False)),
+            "explanation": str(opt.get('explanation', '')),
+        })
+    return normalized if normalized else [
+        {"id": "A", "text": "Option 1", "is_correct": True, "explanation": ""},
+        {"id": "B", "text": "Option 2", "is_correct": False, "explanation": ""},
+    ]
 
 
 class UserMatterViewSet(viewsets.ModelViewSet):
@@ -66,7 +119,13 @@ class TutorChatView(APIView):
             )
 
         user = request.user
-        student_profile = user.student_profile
+        try:
+            student_profile = user.student_profile
+        except StudentProfile.DoesNotExist:
+            return Response(
+                {"error": "Profil élève requis. Seuls les comptes élèves peuvent utiliser le tuteur."},
+                status=status.HTTP_403_FORBIDDEN
+            )
         matiere = serializer.validated_data.get('matiere')
         chapitre = serializer.validated_data.get('chapitre', '')
         action = serializer.validated_data.get('action', 'tutor')
@@ -81,9 +140,9 @@ class TutorChatView(APIView):
         )
 
         try:
-            # Routing logique basé sur l'action
+            validated = serializer.validated_data
             if action == 'diagnostic' and not student_profile.diagnostic_completed:
-                return self._handle_diagnostic(user, student_profile, matiere, user_matter)
+                return self._handle_diagnostic(request, user, student_profile, matiere, user_matter, validated)
             
             elif action == 'exercise':
                 return self._handle_exercise(user, student_profile, user_matter, message)
@@ -107,44 +166,76 @@ class TutorChatView(APIView):
     # HANDLERS POUR CHAQUE ACTION
     # ========================================================================
 
-    def _handle_diagnostic(self, user, student_profile, matiere, user_matter):
-        """Gérer le diagnostic initial"""
-        
-        # Étape 1: Poser des questions
-        if not hasattr(user, '_diagnostic_questions_posed'):
-            prompt = get_diagnostic_prompt(
+    def _handle_diagnostic(self, request, user, student_profile, matiere, user_matter, validated):
+        """Gérer le diagnostic initial en 2 étapes. Classes autorisées: 3ème, Terminale D."""
+        class_level = (validated.get('class_level') or '').strip()
+        student_answers = validated.get('student_answers')
+
+        # Mettre à jour la classe si fournie (obligatoire avant ou à la 1ère étape)
+        if class_level:
+            student_profile.class_level = class_level
+            student_profile.save(update_fields=['class_level'])
+
+        # Étape 2: réponses envoyées → analyser et terminer
+        if student_answers is not None and isinstance(student_answers, dict):
+            stored = student_profile.diagnostic_questions_json
+            questions = stored.get('questions', []) if isinstance(stored, dict) else []
+            if not questions:
+                return Response(
+                    {"error": "Aucune question en attente. Relancez l'évaluation depuis le début."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            prompt = EVALUATION_ANALYSIS_PROMPT.format(
                 matiere=matiere,
-                niveau_scolaire=student_profile.class_level or 'Unknown'
+                student_answers=json.dumps(student_answers, ensure_ascii=False),
+                questions=json.dumps(questions, ensure_ascii=False)
             )
-            
-            # Appeler l'IA pour obtenir les questions
-            ai_response = get_ai_response(prompt)
-            
-            try:
-                diagnostic_data = json.loads(ai_response)
-            except:
-                diagnostic_data = {"raw_response": ai_response}
-            
-            # Stocker dans le RAG
-            rag_service.store_user_diagnostic(user.id, diagnostic_data)
-            
-            return Response({
-                "status": "diagnostic_questions_posed",
-                "questions": diagnostic_data.get('questions', []),
-                "next_action": "Répondez à ces questions puis continuez"
-            }, status=status.HTTP_200_OK)
-        
-        # Étape 2: Analyser les réponses
-        else:
-            # Ce serait implémenté avec l'analyse des réponses
-            # Mettre à jour le profil utilisateur
+            raw = get_ai_response(prompt)
+            reply_text = _get_reply_text(raw)
+            analysis = _parse_json_from_reply(reply_text)
+            if isinstance(analysis, dict):
+                if analysis.get('niveau_diagnostique'):
+                    student_profile.niveau_global = analysis['niveau_diagnostique']
+                if analysis.get('style_apprentissage_probable'):
+                    student_profile.style_apprentissage = analysis['style_apprentissage_probable']
             student_profile.diagnostic_completed = True
-            student_profile.save()
-            
+            student_profile.diagnostic_date = timezone.now()
+            student_profile.diagnostic_questions_json = None
+            student_profile.save(update_fields=[
+                'niveau_global', 'style_apprentissage', 'diagnostic_completed',
+                'diagnostic_date', 'diagnostic_questions_json'
+            ])
+            rag_service.store_user_diagnostic(user.id, analysis or {"raw": reply_text})
             return Response({
                 "status": "diagnostic_completed",
-                "message": "Diagnostic terminé. Votre profil a été mis à jour."
+                "message": "Diagnostic terminé. Votre profil a été mis à jour.",
+                "analysis": analysis if isinstance(analysis, dict) else None
             }, status=status.HTTP_200_OK)
+
+        # Étape 1: générer les questions (class_level doit être défini)
+        niveau_scolaire = student_profile.class_level or class_level or '3ème'
+        if not niveau_scolaire or niveau_scolaire not in ('3ème', 'Terminale D'):
+            return Response(
+                {"error": "Choisissez votre classe (3ème ou Terminale D) avant de lancer l'évaluation."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        prompt = get_diagnostic_prompt(matiere=matiere, niveau_scolaire=niveau_scolaire)
+        raw = get_ai_response(prompt)
+        reply_text = _get_reply_text(raw)
+        diagnostic_data = _parse_json_from_reply(reply_text)
+        if not isinstance(diagnostic_data, dict):
+            diagnostic_data = {"raw_response": reply_text, "questions": []}
+        questions = diagnostic_data.get('questions', [])
+        if not questions and isinstance(diagnostic_data.get('raw_response'), str):
+            questions = [{"id": 1, "text": diagnostic_data["raw_response"], "type": "open"}]
+        student_profile.diagnostic_questions_json = diagnostic_data
+        student_profile.save(update_fields=['diagnostic_questions_json'])
+        rag_service.store_user_diagnostic(user.id, diagnostic_data)
+        return Response({
+            "status": "diagnostic_questions_posed",
+            "questions": questions,
+            "next_action": "Répondez à ces questions puis validez."
+        }, status=status.HTTP_200_OK)
 
     def _handle_exercise(self, user, student_profile, user_matter, message):
         """Générer et retourner un exercice QCM"""
@@ -165,13 +256,13 @@ class TutorChatView(APIView):
             rag_context=rag_context
         )
         
-        # Appeler l'IA
-        ai_response = get_ai_response(prompt)
-        
-        try:
-            exercise_data = json.loads(ai_response)
-        except:
-            exercise_data = {"question": ai_response}
+        # Appeler l'IA (retourne {"reply": str, "sources": list})
+        raw = get_ai_response(prompt)
+        reply_text = _get_reply_text(raw)
+        exercise_data = _parse_json_from_reply(reply_text)
+        if not isinstance(exercise_data, dict):
+            exercise_data = {"question": reply_text or "Exercice généré"}
+        exercise_data["options"] = _normalize_exercise_options(exercise_data)
         
         return Response({
             "status": "exercise_generated",
@@ -206,12 +297,12 @@ class TutorChatView(APIView):
         # Ajouter le message de l'utilisateur au prompt
         final_prompt = prompt + f"\n\nÉlève: {message}"
         
-        # Appeler l'IA
-        tutor_response = get_ai_response(final_prompt)
-        
+        # Appeler l'IA (retourne {"reply": str, "sources": list})
+        raw = get_ai_response(final_prompt)
+        content = _get_reply_text(raw)
         return Response({
             "status": "tutor_response",
-            "content": tutor_response,
+            "content": content,
             "metadata": {
                 "matiere": user_matter.matiere,
                 "progression": user_matter.progression
@@ -237,12 +328,11 @@ class TutorChatView(APIView):
             rag_context=rag_context
         )
         
-        ai_response = get_ai_response(prompt)
-        
-        try:
-            remediation_data = json.loads(ai_response)
-        except:
-            remediation_data = {"content": ai_response}
+        raw = get_ai_response(prompt)
+        reply_text = _get_reply_text(raw)
+        remediation_data = _parse_json_from_reply(reply_text)
+        if not isinstance(remediation_data, dict):
+            remediation_data = {"content": reply_text}
         
         return Response({
             "status": "remediation_provided",
@@ -262,18 +352,17 @@ class TutorChatView(APIView):
             conversation_history=conversation_history
         )
         
-        ai_response = get_ai_response(prompt)
-        
-        try:
-            summary_data = json.loads(ai_response)
-        except:
-            summary_data = {"resume": ai_response}
+        raw = get_ai_response(prompt)
+        reply_text = _get_reply_text(raw)
+        summary_data = _parse_json_from_reply(reply_text)
+        if not isinstance(summary_data, dict):
+            summary_data = {"resume": reply_text, "resume_court": (reply_text or '')[:500]}
         
         # Sauvegarder le résumé dans la BD
         conversation_summary = ConversationSummary.objects.create(
             user=user,
             user_matter=user_matter,
-            summary_text=summary_data.get('resume_court', ai_response),
+            summary_text=summary_data.get('resume_court', summary_data.get('resume', reply_text[:500])),
             key_concepts=summary_data.get('concepts_couverts', [])
         )
         

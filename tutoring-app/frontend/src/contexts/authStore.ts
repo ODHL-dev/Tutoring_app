@@ -3,6 +3,11 @@ import { immer } from 'zustand/middleware/immer';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import apiClient from '../api/client';
 
+export interface StudentProfileInfo {
+  diagnosticCompleted: boolean;
+  classLevel?: string | null;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -16,17 +21,20 @@ export interface User {
   series?: string;
   profilePicture?: string;
   createdAt: Date;
+  /** Présent pour les élèves : utilisé pour rediriger vers l'évaluation au premier login */
+  studentProfile?: StudentProfileInfo | null;
 }    
 
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  /** true tant que la session stockée n'a pas été vérifiée au démarrage (évite flash Login) */
+  isRehydrating: boolean;
   error: string | null;
-  // Modifié pour utiliser username au lieu de email pour le login
-  login: (username: string, password: string) => Promise<void>; 
+  login: (username: string, password: string) => Promise<void>;
   register: (
-
+    username: string,
     firstName: string,
     lastName: string,
     email: string,
@@ -35,30 +43,22 @@ interface AuthState {
     classCycle?: User['classCycle'],
     classLevel?: string,
     series?: string,
-    teachingCycle?: User['teachingCycle'],
-    // ... autres propriétés
-    username: string, // <-- Ajoute ceci !
-    firstName: string,
-    lastName: string,
-    email: string,
-    password: string,
-    role: User['role'],
-    classCycle?: User['classCycle'],
-    classLevel?: string,
-    series?: string,
-    teachingCycle?: User['teachingCycle']
+    teachingCycle?: string
   ) => Promise<void>;
   
-  // updateUserName removed — username changes are not supported from the app
   logout: () => Promise<void>;
   clearError: () => void;
+  refreshProfile: () => Promise<void>;
+  /** Restaure la session depuis les tokens stockés (au chargement / après refresh) */
+  rehydrateAuth: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
-  immer((set) => ({
+  immer((set, get) => ({
     user: null,
     isAuthenticated: false,
     isLoading: false,
+    isRehydrating: true,
     error: null,
 
     // --- CONNEXION (implémentation finale) et INSCRIPTION ---
@@ -127,17 +127,21 @@ export const useAuthStore = create<AuthState>()(
         });
 
         const userData = profileResponse.data;
+        const sp = userData.student_profile;
 
         // 4. Mise à jour de l'état global avec les vraies données
         set((state) => {
           state.isAuthenticated = true;
-          state.user = { 
-            id: userData.id.toString(), 
+          state.user = {
+            id: userData.id.toString(),
             username: userData.username,
-            // Si l'utilisateur n'a pas de nom/prénom, on affiche son pseudo
-            name: `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || userData.username, 
+            name: `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || userData.username,
             role: 'student',
-            createdAt: new Date() 
+            createdAt: new Date(),
+            studentProfile: sp ? {
+              diagnosticCompleted: !!sp.diagnostic_completed,
+              classLevel: sp.class_level ?? undefined,
+            } : null,
           };
           state.isLoading = false;
         });
@@ -168,6 +172,62 @@ export const useAuthStore = create<AuthState>()(
       set((state) => {
         state.error = null;
       });
+    },
+
+    refreshProfile: async () => {
+      try {
+        const res = await apiClient.get('auth/profile/');
+        const userData = res.data;
+        const sp = userData.student_profile;
+        set((state) => {
+          if (state.user) {
+            state.user.studentProfile = sp ? {
+              diagnosticCompleted: !!sp.diagnostic_completed,
+              classLevel: sp.class_level ?? undefined,
+            } : null;
+          }
+        });
+      } catch {
+        // ignore
+      }
+    },
+
+    rehydrateAuth: async () => {
+      try {
+        const token = await AsyncStorage.getItem('accessToken');
+        if (!token || !token.trim()) {
+          set((state) => { state.isRehydrating = false; });
+          return;
+        }
+        const profileResponse = await apiClient.get('auth/profile/', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const userData = profileResponse.data;
+        const sp = userData.student_profile;
+        set((state) => {
+          state.isAuthenticated = true;
+          state.user = {
+            id: userData.id.toString(),
+            username: userData.username,
+            name: `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || userData.username,
+            role: 'student',
+            createdAt: new Date(),
+            studentProfile: sp ? {
+              diagnosticCompleted: !!sp.diagnostic_completed,
+              classLevel: sp.class_level ?? undefined,
+            } : null,
+          };
+          state.isRehydrating = false;
+        });
+      } catch {
+        await AsyncStorage.removeItem('accessToken');
+        await AsyncStorage.removeItem('refreshToken');
+        set((state) => {
+          state.user = null;
+          state.isAuthenticated = false;
+          state.isRehydrating = false;
+        });
+      }
     },
   }))
 );

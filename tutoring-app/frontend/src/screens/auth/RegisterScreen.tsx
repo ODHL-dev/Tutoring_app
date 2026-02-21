@@ -1,7 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity,
-  KeyboardAvoidingView, Platform, Modal, useWindowDimensions,
+  KeyboardAvoidingView, Platform, useWindowDimensions,
 } from 'react-native';
 import { useAuth } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
@@ -9,40 +9,27 @@ import { useForm } from '../../hooks/useForm';
 import { validateEmail, validateName, validatePassword } from '../../utils/validation';
 import { Button } from '../../components/Button';
 import { TextField } from '../../components/TextField';
-import { Icon } from '../../components/Icon';
 import { spacing, typography, webMaxWidth } from '../../styles/theme';
 
 export default function RegisterScreen({ navigation }: any) {
   const { register, isLoading, error } = useAuth();
   const { colors } = useTheme();
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2>(1);
   const { width } = useWindowDimensions();
   const isWeb = Platform.OS === 'web';
   const isWide = isWeb && width >= 1024;
-  const [selectConfig, setSelectConfig] = useState<{
-    title: string; options: string[]; onSelect: (value: string) => void;
-  } | null>(null);
-
-  const primaryClasses = useMemo(() => ['CP1', 'CP2', 'CE1', 'CE2', 'CM1', 'CM2'], []);
-  const secondaryClasses = useMemo(() => ['6e', '5e', '4e', '3e', '2nde', '1ere', 'Terminale'], []);
-  const seriesOptions = useMemo(() => ['A', 'C', 'D'], []);
 
   const { values, errors, handleChange, handleSubmit, setFieldError } = useForm({
     initialValues: {
-      username: '', // <-- AJOUT DU USERNAME
+      username: '',
       firstName: '',
       lastName: '',
       email: '',
-      classCycle: '',
       password: '',
       confirmPassword: '',
-      classLevel: '',
-      series: '',
-      teachingCycle: '',
     },
     onSubmit: async (vals) => {
       try {
-        // Register as student only
         await register(
           vals.username,
           vals.firstName,
@@ -50,22 +37,17 @@ export default function RegisterScreen({ navigation }: any) {
           vals.email,
           vals.password,
           'student',
-          vals.classCycle as any,
-          vals.classLevel,
-          vals.series,
+          undefined,
+          undefined,
+          undefined,
           undefined
         );
-        // Redirection vers le login après succès
         navigation.navigate('Login');
       } catch (err) {
-        // L'erreur est gérée par le store et affichée via la variable `error`
+        // L'erreur est gérée par le store
       }
     },
   });
-
-  const openSelect = (title: string, options: string[], onSelect: (value: string) => void) => {
-    setSelectConfig({ title, options, onSelect });
-  };
 
   const applyErrors = (stepErrors: Record<string, string>) => {
     Object.entries(stepErrors).forEach(([key, value]) => {
@@ -78,13 +60,10 @@ export default function RegisterScreen({ navigation }: any) {
 
     if (step === 1) {
       if (!values.username.trim()) stepErrors.username = "Le nom d'utilisateur est requis";
-      
       const firstNameError = validateName(values.firstName);
       if (firstNameError) stepErrors.firstName = firstNameError;
-
       const lastNameError = validateName(values.lastName);
       if (lastNameError) stepErrors.lastName = lastNameError;
-
       if (!values.email) {
         stepErrors.email = 'L\'email est requis';
       } else if (!validateEmail(values.email)) {
@@ -93,15 +72,6 @@ export default function RegisterScreen({ navigation }: any) {
     }
 
     if (step === 2) {
-      if (!values.classCycle) stepErrors.classCycle = 'Le cycle est requis';
-      if (!values.classLevel) stepErrors.classLevel = 'La classe est requise';
-      const needsSeries = ['2nde', '1ere', 'Terminale'].includes(values.classLevel);
-      if (values.classCycle === 'secondaire' && needsSeries && !values.series) {
-        stepErrors.series = 'La serie est requise';
-      }
-    }
-
-    if (step === 3) {
       const passwordError = validatePassword(values.password);
       if (passwordError) stepErrors.password = passwordError;
       if (!values.confirmPassword || values.password !== values.confirmPassword) {
@@ -114,12 +84,10 @@ export default function RegisterScreen({ navigation }: any) {
       return;
     }
 
-    if (step < 3) setStep((prev) => (prev + 1) as 2 | 3);
+    if (step < 2) setStep(2);
   };
 
-  const stepSubtitle = step === 1 ? 'Identite et contact.' : step === 2 ? 'Informations scolaires.' : 'Securisez votre compte.';
-  const classOptions = values.classCycle === 'secondaire' ? secondaryClasses : primaryClasses;
-  const needsSeries = ['2nde', '1ere', 'Terminale'].includes(values.classLevel);
+  const stepSubtitle = step === 1 ? 'Identité et contact.' : 'Sécurisez votre compte.';
 
   // Styles simplifiés pour gagner de la place ici (identiques aux tiens)
   const styles = StyleSheet.create({
@@ -204,7 +172,7 @@ export default function RegisterScreen({ navigation }: any) {
 
               <View style={styles.card}>
                 <View style={styles.cardHeader}>
-                  <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>Etape {step}/3</Text></View>
+                  <View style={styles.stepBadge}><Text style={styles.stepBadgeText}>Étape {step}/2</Text></View>
                   <Text style={styles.cardTitle}>Inscription</Text>
                   <Text style={styles.cardSubtitle}>{stepSubtitle}</Text>
                 </View>
@@ -219,7 +187,6 @@ export default function RegisterScreen({ navigation }: any) {
                   value={values.username}
                   onChangeText={(text: string) => handleChange('username', text)}
                   error={errors.username}
-                  autoCapitalize="none"
                 />
                 <TextField
                   label="Prénom"
@@ -248,47 +215,14 @@ export default function RegisterScreen({ navigation }: any) {
 
             {step === 2 && (
               <>
-                <View style={styles.extraSection}>
-                  <Text style={styles.selectLabel}>Cycle</Text>
-                  <TouchableOpacity style={[styles.selectField, errors.classCycle ? styles.selectFieldError : null]} onPress={() => openSelect('Choisir un cycle', ['primaire', 'secondaire'], (value) => { handleChange('classCycle', value); handleChange('classLevel', ''); handleChange('series', ''); })}>
-                    <Text style={values.classCycle ? styles.selectTextValue : styles.selectTextPlaceholder}>{values.classCycle ? (values.classCycle === 'primaire' ? 'Primaire' : 'Secondaire') : 'Choisir un cycle'}</Text>
-                    <Icon library="Feather" name="chevron-down" size={18} color={colors.gray600} />
-                  </TouchableOpacity>
-                  {errors.classCycle && <Text style={styles.selectError}>{errors.classCycle}</Text>}
-                </View>
-
-                <View style={styles.extraSection}>
-                  <Text style={styles.selectLabel}>Classe</Text>
-                  <TouchableOpacity style={[styles.selectField, errors.classLevel ? styles.selectFieldError : null]} onPress={() => { if (!values.classCycle) { setFieldError('classCycle', 'Le cycle est requis'); return; } openSelect('Choisir une classe', classOptions, (value) => { handleChange('classLevel', value); if (!['2nde', '1ere', 'Terminale'].includes(value)) handleChange('series', ''); }); }}>
-                    <Text style={values.classLevel ? styles.selectTextValue : styles.selectTextPlaceholder}>{values.classLevel || 'Choisir une classe'}</Text>
-                    <Icon library="Feather" name="chevron-down" size={18} color={colors.gray600} />
-                  </TouchableOpacity>
-                  {errors.classLevel && <Text style={styles.selectError}>{errors.classLevel}</Text>}
-                </View>
-
-                {values.classCycle === 'secondaire' && needsSeries && (
-                  <View style={styles.extraSection}>
-                    <Text style={styles.selectLabel}>Série</Text>
-                    <TouchableOpacity style={[styles.selectField, errors.series ? styles.selectFieldError : null]} onPress={() => openSelect('Choisir une série', seriesOptions, (value) => { handleChange('series', value); })}>
-                      <Text style={values.series ? styles.selectTextValue : styles.selectTextPlaceholder}>{values.series || 'Choisir une série'}</Text>
-                      <Icon library="Feather" name="chevron-down" size={18} color={colors.gray600} />
-                    </TouchableOpacity>
-                    {errors.series && <Text style={styles.selectError}>{errors.series}</Text>}
-                  </View>
-                )}
-              </>
-            )}
-
-            {step === 3 && (
-              <>
                 <TextField label="Mot de passe" placeholder="••••••••" value={values.password} onChangeText={(text: string) => handleChange('password', text)} error={errors.password} secureTextEntry />
                 <TextField label="Confirmer le mot de passe" placeholder="••••••••" value={values.confirmPassword} onChangeText={(text: string) => handleChange('confirmPassword', text)} error={errors.confirmPassword} secureTextEntry />
               </>
             )}
 
             <View style={styles.stepActions}>
-              {step > 1 && <View style={{ flex: 1 }}><Button title="Retour" onPress={() => setStep((prev) => (prev - 1) as 1 | 2)} variant="secondary" fullWidth /></View>}
-              <View style={{ flex: 1 }}>{step < 3 ? <Button title="Suivant" onPress={handleNextStep} fullWidth /> : <Button title="S'inscrire" onPress={handleSubmit} fullWidth loading={isLoading} />}</View>
+              {step > 1 && <View style={{ flex: 1 }}><Button title="Retour" onPress={() => setStep(1)} variant="secondary" fullWidth /></View>}
+              <View style={{ flex: 1 }}>{step < 2 ? <Button title="Suivant" onPress={handleNextStep} fullWidth /> : <Button title="S'inscrire" onPress={handleSubmit} fullWidth loading={isLoading} />}</View>
             </View>
           </View>
 
@@ -301,21 +235,6 @@ export default function RegisterScreen({ navigation }: any) {
           </View>
       </ScrollView>
       </KeyboardAvoidingView>
-      <Modal visible={!!selectConfig} transparent animationType="slide" onRequestClose={() => setSelectConfig(null)}>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>{selectConfig?.title}</Text>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              {selectConfig?.options.map((option) => (
-                <TouchableOpacity key={option} style={styles.optionItem} onPress={() => { selectConfig?.onSelect(option); setSelectConfig(null); }}>
-                  <Text style={styles.optionText}>{option}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-            <View style={styles.modalClose}><Button title="Fermer" onPress={() => setSelectConfig(null)} variant="outline" fullWidth /></View>
-          </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 }

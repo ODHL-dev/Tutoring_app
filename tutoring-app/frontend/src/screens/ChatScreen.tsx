@@ -272,6 +272,10 @@ export default function ChatScreen() {
               value={input}
               onChangeText={setInput}
               multiline
+              onSubmitEditing={() => handleSend()}
+              blurOnSubmit={false}
+              returnKeyType="send"
+              submitBehavior="submit"
             />
             <TouchableOpacity
               style={[styles.sendButton, !input.trim() ? styles.sendButtonDisabled : null]}

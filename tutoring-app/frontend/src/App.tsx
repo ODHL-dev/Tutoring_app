@@ -3,16 +3,22 @@ import { View, StyleSheet, Platform } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { lightColors, darkColors } from './styles/theme';
 import { useThemeStore } from './contexts/themeStore';
+import { useAuthStore } from './contexts/authStore';
 import { RootNavigator } from './navigation/RootNavigator';
 
 export default function App() {
   const { isDarkMode, initializeTheme } = useThemeStore();
+  const rehydrateAuth = useAuthStore((s) => s.rehydrateAuth);
   const [, setRefresh] = useState(0);
 
-  // Initialiser le thème au démarrage
   useEffect(() => {
     initializeTheme();
   }, [initializeTheme]);
+
+  // Restaurer la session au chargement (persistance après refresh)
+  useEffect(() => {
+    rehydrateAuth();
+  }, [rehydrateAuth]);
 
   // Déterminer le mode actuel
   const isCurrentlyDark = isDarkMode;

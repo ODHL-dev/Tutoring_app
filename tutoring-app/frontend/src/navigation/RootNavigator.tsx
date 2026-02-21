@@ -17,8 +17,8 @@ import ExercisesScreen from '../screens/ExercisesScreen';
 import ProgressScreen from '../screens/ProgressScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import SettingsScreen from '../screens/SettingsScreen';
-// Teacher screens removed
-// Group screens removed
+import TutoringScreen from '../screens/TutoringScreen';
+import EvaluationScreen from '../screens/EvaluationScreen';
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -32,6 +32,7 @@ const linkingConfig = {
       MainTabs: {
         screens: {
           Home: '',
+          Tutoring: 'grasss',
           Chat: 'tutor',
           Lessons: 'lessons',
           Profile: 'profile',
@@ -56,6 +57,18 @@ function AuthStack() {
     >
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
+    </Stack.Navigator>
+  );
+}
+
+function EvaluationStack() {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+      }}
+    >
+      <Stack.Screen name="Evaluation" component={EvaluationScreen} />
     </Stack.Navigator>
   );
 }
@@ -90,6 +103,17 @@ function MainTabs() {
           tabBarLabel: 'Accueil',
           tabBarIcon: ({ color, size }) => (
             <Icon library="Feather" name="home" size={size ?? 20} color={color} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Tutoring"
+        component={TutoringScreen}
+        options={{
+          title: 'GRASSS',
+          tabBarLabel: 'GRASSS',
+          tabBarIcon: ({ color, size }) => (
+            <Icon library="Feather" name="brain" size={size ?? 20} color={color} />
           ),
         }}
       />
@@ -223,7 +247,7 @@ function AppStack() {
 }
 
 export function RootNavigator() {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, isRehydrating } = useAuth();
   const { isDarkMode, colors } = useTheme();
   const navigationRef = useNavigationContainerRef();
 
@@ -248,10 +272,16 @@ export function RootNavigator() {
   useEffect(() => {
     enforceWebRoutes();
   }, [enforceWebRoutes]);
-  
-  console.log('=== RootNavigator rendering ===');
-  console.log('isAuthenticated:', isAuthenticated);
-  console.log('isDarkMode:', isDarkMode);
+
+  const needsEvaluation =
+    isAuthenticated &&
+    user?.role === 'student' &&
+    user?.studentProfile != null &&
+    !user.studentProfile.diagnosticCompleted;
+
+  if (isRehydrating) {
+    return null;
+  }
 
   return (
     <NavigationContainer
@@ -271,7 +301,13 @@ export function RootNavigator() {
         },
       }}
     >
-      {isAuthenticated ? <AppStack /> : <AuthStack />}
+      {!isAuthenticated ? (
+        <AuthStack />
+      ) : needsEvaluation ? (
+        <EvaluationStack />
+      ) : (
+        <AppStack />
+      )}
     </NavigationContainer>
   );
 }

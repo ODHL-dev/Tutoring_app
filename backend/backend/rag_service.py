@@ -101,7 +101,31 @@ def get_ai_response(user_query: str, n_results: int = 3, max_context_chars: int 
             col_count = 0
 
     if not col_count:
-        return {"reply": "Désolé, ma base de connaissances n'est pas encore indexée.", "sources": []}
+        # Fallback: générer quand même une réponse avec Gemini sans contexte RAG
+        prompt_only = f"""
+Vous êtes un assistant tuteur pédagogique concis et clair.
+Répondez de manière bienveillante et pédagogique à la question ou à la demande de l'élève.
+
+QUESTION OU DEMANDE:\n{user_query}\n\nREPONSE PEDAGOGIQUE:
+"""
+        reply_text = None
+        if gen_client is not None:
+            try:
+                resp = gen_client.models.generate_content(model="gemini-3-flash-preview", contents=prompt_only)
+                reply_text = getattr(resp, 'text', None) or str(resp)
+            except Exception:
+                pass
+        if not reply_text and genai_legacy is not None:
+            try:
+                genai_legacy.configure(api_key=GEMINI_KEY)
+                model = genai_legacy.GenerativeModel('gemini-3-flash-preview')
+                response = model.generate_content(prompt_only)
+                reply_text = getattr(response, 'text', '') or str(response)
+            except Exception:
+                pass
+        if not reply_text:
+            reply_text = "Désolé, ma base de connaissances n'est pas encore indexée. Réessayez plus tard."
+        return {"reply": reply_text, "sources": []}
 
     # 2. Compute embedding for the query
     try:

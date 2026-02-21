@@ -52,6 +52,13 @@ interface ChatMessage {
 
 const { width } = Dimensions.get('window');
 
+function getApiErrorMessage(error: unknown): string {
+  const err = error as { response?: { status?: number; data?: { error?: string; detail?: string } }; message?: string };
+  if (err.response?.status === 401) return 'Session expirée. Reconnectez-vous.';
+  if (err.response?.status === 403) return err.response?.data?.error ?? 'Accès refusé (profil élève requis).';
+  return (err.response?.data?.error ?? err.response?.data?.detail ?? err.message) || 'Erreur de connexion.';
+}
+
 export default function TutoringScreen() {
   const { colors } = useTheme();
   const { user } = useAuth();
@@ -71,38 +78,59 @@ export default function TutoringScreen() {
     loadMatters();
   }, []);
 
+  const mapMatterFromApi = (item: {
+    id: number | string;
+    matiere: string;
+    chapitre?: string | null;
+    objectif?: string;
+    niveau_difficulte?: string;
+    progression?: number;
+    created_at?: string;
+    updated_at?: string;
+  }): Matter => ({
+    id: String(item.id),
+    matiere: item.matiere,
+    chapitre: item.chapitre || 'Général',
+    objectif: item.objectif || '',
+    niveau_difficulte: (item.niveau_difficulte as Matter['niveau_difficulte']) || 'moyen',
+    progression: typeof item.progression === 'number' ? item.progression : 0,
+    created_at: item.created_at || new Date().toISOString(),
+    updated_at: item.updated_at || new Date().toISOString(),
+  });
+
+  const DEFAULT_MATTERS: Matter[] = [
+    {
+      id: '1',
+      matiere: 'Mathématiques',
+      chapitre: 'Algèbre',
+      objectif: 'Maîtriser les équations du premier degré',
+      niveau_difficulte: 'moyen',
+      progression: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+    {
+      id: '2',
+      matiere: 'Français',
+      chapitre: 'Conjugaison',
+      objectif: 'Maîtriser les temps de base',
+      niveau_difficulte: 'moyen',
+      progression: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    },
+  ];
+
   const loadMatters = async () => {
     try {
       setLoading(true);
-      // À implémenter selon votre API
-      // const response = await apiClient.get('/auth/matters/');
-      // setMatters(response.data);
-      
-      // Pour le prototype:
-      setMatters([
-        {
-          id: '1',
-          matiere: 'Mathématiques',
-          chapitre: 'Algèbre',
-          objectif: 'Maîtriser les équations du premier degré',
-          niveau_difficulte: 'moyen',
-          progression: 35,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        {
-          id: '2',
-          matiere: 'Français',
-          chapitre: 'Conjugaison',
-          objectif: 'Maitriser les temps de base',
-          niveau_difficulte: 'moyen',
-          progression: 50,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-      ]);
-    } catch (error) {
-      Alert.alert('Erreur', 'Impossible de charger les matières');
+      const response = await apiClient.get('/auth/matters/');
+      const list = Array.isArray(response.data) ? response.data : response.data?.results || [];
+      const mapped = list.map(mapMatterFromApi);
+      setMatters(mapped.length > 0 ? mapped : DEFAULT_MATTERS);
+    } catch (error: unknown) {
+      Alert.alert('Erreur', getApiErrorMessage(error));
+      setMatters(DEFAULT_MATTERS);
     } finally {
       setLoading(false);
     }
@@ -124,7 +152,7 @@ export default function TutoringScreen() {
     setLoading(true);
 
     try {
-      // Appel initial au tuteur
+      // Appel initial au tuteur avec l'API Gemini
       const payload = {
         action: 'tutor',
         matiere: selectedMatter.matiere,
@@ -133,27 +161,19 @@ export default function TutoringScreen() {
         message: `Bonjour, je veux progresser en ${selectedMatter.chapitre}`,
       };
 
-      // À implémenter
-      // const response = await apiClient.post('/auth/tutor/chat/', payload);
+      const response = await apiClient.post('/auth/tutor/chat/', payload);
       
-      // Pour le prototype
       const welcomeMessage: ChatMessage = {
         id: Date.now().toString(),
         role: 'ai',
-        content: `Bienvenue en séance de tutorat pour ${selectedMatter.matiere} - ${selectedMatter.chapitre}! 
-        
-Je suis votre tuteur IA personnel. On peut:
-1. **Faire des exercices** - Cliquez sur "Exercice"
-2. **Discuter du contenu** - Posez vos questions
-3. **Réviser** - Je vous aide à consolider vos connaissances
-
-Quel est votre préférence?`,
+        content: response.data?.content || response.data?.message || 'Bienvenue en séance de tutorat!',
         timestamp: new Date(),
       };
 
       setMessages([welcomeMessage]);
     } catch (error) {
-      Alert.alert('Erreur', 'Erreur de connexion au tuteur');
+      console.error('Erreur tuteur:', error);
+      Alert.alert('Erreur', getApiErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -174,29 +194,25 @@ Quel est votre préférence?`,
     setLoading(true);
 
     try {
-      // À implémenter selon votre API
-      // const response = await apiClient.post('/auth/tutor/chat/', {
-      //   action: 'tutor',
-      //   matiere: selectedMatter.matiere,
-      //   chapitre: selectedMatter.chapitre,
-      //   message: inputMessage,
-      // });
+      // Appel API réel au tuteur Gemini
+      const response = await apiClient.post('/auth/tutor/chat/', {
+        action: 'tutor',
+        matiere: selectedMatter.matiere,
+        chapitre: selectedMatter.chapitre,
+        message: inputMessage,
+      });
 
-      // Pour le prototype
-      setTimeout(() => {
-        const aiMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
-          role: 'ai',
-          content: `J'ai bien noté votre question: "${inputMessage}". 
-        
-Voici une explication adaptée à votre niveau...`,
-          timestamp: new Date(),
-        };
-        setMessages(prev => [...prev, aiMessage]);
-        setLoading(false);
-      }, 1000);
+      const aiMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'ai',
+        content: response.data?.content || response.data?.message || 'Désolé, je n\'ai pas pu générer une réponse.',
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
-      Alert.alert('Erreur', 'Erreur lors de l\'envoi du message');
+      console.error('Erreur API:', error);
+      Alert.alert('Erreur', getApiErrorMessage(error));
+    } finally {
       setLoading(false);
     }
   };
@@ -206,61 +222,42 @@ Voici une explication adaptée à votre niveau...`,
 
     setLoading(true);
     try {
-      // À implémenter
-      // const response = await apiClient.post('/auth/tutor/chat/', {
-      //   action: 'exercise',
-      //   matiere: selectedMatter.matiere,
-      //   chapitre: selectedMatter.chapitre,
-      //   niveau_difficulte: selectedMatter.niveau_difficulte,
-      // });
+      // Appel API réel pour générer un exercice avec Gemini
+      const response = await apiClient.post('/auth/tutor/chat/', {
+        action: 'exercise',
+        matiere: selectedMatter.matiere,
+        chapitre: selectedMatter.chapitre,
+        niveau_difficulte: selectedMatter.niveau_difficulte,
+      });
 
-      // Pour le prototype:
-      const mockExercise: Exercise = {
-        question: 'Résoudre l\'équation: 2x + 5 = 15',
-        options: [
-          {
-            id: 'A',
-            text: 'x = 5',
-            is_correct: true,
-            explanation: 'Soustrayez 5 des deux côtés: 2x = 10, puis divisez par 2',
-          },
-          {
-            id: 'B',
-            text: 'x = 10',
-            is_correct: false,
-            explanation: 'Vous avez peut-être oublié l\'étape de division',
-          },
-          {
-            id: 'C',
-            text: 'x = 20',
-            is_correct: false,
-            explanation: 'Vérifiez votre calcul de soustraction',
-          },
-          {
-            id: 'D',
-            text: 'x = 3',
-            is_correct: false,
-            explanation: 'Ceci est une erreur couante, reprenez le calcul',
-          },
+      // Parser la réponse - structure: { status, exercise, metadata }
+      const exerciseData = response.data?.exercise || response.data?.questions || {};
+      
+      const exercise: Exercise = {
+        question: exerciseData?.question || 'Question générée par Gemini',
+        options: Array.isArray(exerciseData?.options) ? exerciseData.options : [
+          { id: 'A', text: 'Option 1', is_correct: true, explanation: 'Explication' },
+          { id: 'B', text: 'Option 2', is_correct: false, explanation: '' },
         ],
-        difficulty: selectedMatter.niveau_difficulte,
-        competencies: ['Résolution', 'Équations'],
-        hint: 'Isolez d\'abord le terme avec x',
+        difficulty: exerciseData?.difficulty || selectedMatter.niveau_difficulte,
+        competencies: exerciseData?.competencies || [],
+        hint: exerciseData?.hint || exerciseData?.conseil,
       };
 
       const exerciseMessage: ChatMessage = {
         id: Date.now().toString(),
         role: 'system',
-        content: 'Voici un exercice pour vous:',
-        exercise: mockExercise,
+        content: 'Voici un exercice généré par Gemini:',
+        exercise,
         timestamp: new Date(),
       };
 
       setMessages(prev => [...prev, exerciseMessage]);
-      setCurrentExercise(mockExercise);
+      setCurrentExercise(exercise);
       setSelectedAnswers([]);
     } catch (error) {
-      Alert.alert('Erreur', 'Impossible de générer l\'exercice');
+      console.error('Erreur génération exercice:', error);
+      Alert.alert('Erreur', getApiErrorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -557,6 +554,10 @@ Voici une explication adaptée à votre niveau...`,
           onChangeText={setInputMessage}
           multiline
           editable={!loading}
+          onSubmitEditing={sendMessage}
+          blurOnSubmit={false}
+          returnKeyType="send"
+          submitBehavior="submit"
         />
 
         <TouchableOpacity
@@ -663,7 +664,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-end',
   },
   systemMessage: {
-    alignSelf: 'centre',
+    alignSelf: 'center',
   },
   messageText: {
     fontSize: 14,

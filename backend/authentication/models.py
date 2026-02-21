@@ -42,6 +42,7 @@ class StudentProfile(models.Model):
     # État du diagnostic initial
     diagnostic_completed = models.BooleanField(default=False)
     diagnostic_date = models.DateTimeField(null=True, blank=True)
+    diagnostic_questions_json = models.JSONField(null=True, blank=True)  # questions en attente de réponses
 
     def __str__(self):
         return f"Profil Élève de {self.user.username}"
