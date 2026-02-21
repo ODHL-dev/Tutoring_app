@@ -11,6 +11,7 @@ build/
 .Python
 env/
 .env
+/home/felix/Documents/Documents/L3/Programmation web avancee/version1/Tutoring_app/.env
 venv/
 .venv/
 ENV/
